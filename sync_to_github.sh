@@ -12,6 +12,9 @@ cd "$DIR"
 DATE="$(date '+%Y-%m-%d')"
 MESSAGE="${1:-"Update papers and interests database - $DATE"}"
 
+# Remove stale git lock files left by crashed/interrupted git processes.
+rm -f "$DIR/.git/index.lock" "$DIR/.git/HEAD.lock"
+
 echo "==> Staging changes..."
 git add papers_database.csv interests_database.csv index.html
 

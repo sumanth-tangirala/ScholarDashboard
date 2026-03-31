@@ -308,6 +308,16 @@ a { color: inherit; text-decoration: none; }
 .auth-submit { width: 100%; padding: 10px; background: var(--accent); border: none; border-radius: 8px; color: #1b1b1b; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
 .auth-submit:hover { opacity: 0.88; }
 .auth-submit:active { opacity: 0.72; }
+
+/* SAVE BAR */
+.save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-surface); border-top: 1px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; gap: 12px; z-index: 250; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
+.save-bar.visible { transform: translateY(0); }
+.save-bar-msg { font-size: 13px; color: var(--text-secondary); flex: 1; }
+.save-bar-msg strong { color: var(--text); }
+.btn-save-csv { padding: 7px 18px; background: var(--accent); border: none; border-radius: 20px; color: #1b1b1b; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; }
+.btn-save-csv:hover { opacity: 0.88; }
+.btn-dismiss-bar { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.15s; }
+.btn-dismiss-bar:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -328,7 +338,7 @@ a { color: inherit; text-decoration: none; }
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       <input type="text" id="searchInput" placeholder="Search papers, authors, topics..." oninput="debouncedSearch()">
     </div>
-    <button class="nav-login-btn" id="loginBtn" onclick="openLoginModal()" title="Authentication">
+    <button class="nav-login-btn" id="loginBtn" onclick="isAuthed() ? lockDashboard() : openLoginModal()" title="Authentication">
       <svg id="loginIcon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span id="loginLabel">Login</span>
     </button>
@@ -391,10 +401,10 @@ a { color: inherit; text-decoration: none; }
   <div class="interests-wrap">
     <div class="briefing" style="padding:0 0 16px;"><h2>Research Interests</h2></div>
     <div class="interest-filter-chips" id="interestChips">
-      <button class="pill active" data-istatus="all" onclick="toggleIStatus('all')">All</button>
-      <button class="pill" data-istatus="suggested" onclick="toggleIStatus('suggested')">Needs Review</button>
+      <button class="pill active" data-istatus="suggested" onclick="toggleIStatus('suggested')">Needs Review</button>
       <button class="pill" data-istatus="confirmed" onclick="toggleIStatus('confirmed')">Confirmed</button>
       <button class="pill" data-istatus="rejected" onclick="toggleIStatus('rejected')">Rejected</button>
+      <button class="pill" data-istatus="all" onclick="toggleIStatus('all')">All</button>
     </div>
     <div id="interestsMain"></div>
   </div>
@@ -432,6 +442,14 @@ a { color: inherit; text-decoration: none; }
 
 <div id="toast" class="toast"></div>
 
+<!-- SAVE BAR -->
+<div class="save-bar" id="saveBar">
+  <span class="save-bar-msg"><strong>Unsaved interest changes</strong></span>
+  <button class="btn-save-csv" onclick="pushInterestsToGitHub()" id="btnPushGH">Push to GitHub</button>
+  <button class="btn-save-csv" onclick="downloadInterestsCSV()" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border);">Download CSV</button>
+  <button class="btn-dismiss-bar" onclick="hideSaveBar()" title="Dismiss">&times;</button>
+</div>
+
 <script>
 /* ===== CONFIG ===== */
 const GROUP_NORMALIZE = {
@@ -456,10 +474,10 @@ const AUTH_HASH = 'b48acf8efc8ea1d7fee376c8e12a358dc56844f8123018fbe9ccfd87ffe3f
 const AUTH_COOKIE = 'scholar_auth';
 const AUTH_COOKIE_DAYS = 3650; // ~10 years (permanent)
 
-async function sha256(str) {
-  // Use js-sha256 CDN lib (works on HTTP + HTTPS).
-  // Fall back to SubtleCrypto only if the lib somehow didn't load.
-  if (window.sha256) return window.sha256(str);
+async function hashPasskey(str) {
+  // Use js-sha256 CDN lib (works on HTTP + HTTPS, no secure-context requirement).
+  // Fall back to SubtleCrypto (HTTPS only) if the CDN lib didn't load.
+  if (typeof sha256 === 'function') return sha256(str);
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
@@ -483,9 +501,15 @@ function updateLoginBtn() {
     icon.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>';
   } else {
     btn.classList.remove('authed');
-    label.textContent = 'Login';
+    label.textContent = 'Unlock';
     icon.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
   }
+}
+
+function lockDashboard() {
+  document.cookie = `${AUTH_COOKIE}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+  updateLoginBtn();
+  toast('Locked');
 }
 
 let _authCallback = null;
@@ -513,7 +537,7 @@ function handleAuthOverlayClick(e) {
 }
 async function submitPasskey() {
   const val = document.getElementById('authInput').value;
-  const hash = await sha256(val);
+  const hash = await hashPasskey(val);
   if (hash === AUTH_HASH) {
     setCookie(AUTH_COOKIE, AUTH_HASH, AUTH_COOKIE_DAYS);
     closeLoginModal();
@@ -543,7 +567,7 @@ function togglePasskeyVis() {
 
 /* ===== STATE ===== */
 let allPapers = [], allInterests = [];
-let currentTab = 'all', currentRel = 'all', currentIStatus = 'all', hideRead = true;
+let currentTab = 'all', currentRel = 'all', currentIStatus = 'suggested', hideRead = true;
 let readSet = new Set(JSON.parse(localStorage.getItem('scholar_read') || '[]'));
 let starSet = new Set(JSON.parse(localStorage.getItem('scholar_starred') || '[]'));
 let libraryLists = JSON.parse(localStorage.getItem('scholar_lists') || '{}');
@@ -1166,11 +1190,81 @@ function updateI(name, status) {
   i.status = status; i.date_updated = new Date().toISOString().split('T')[0];
   updateInterestsBadge();
   renderInterests();
-  window._interestsDirty = true;
+  showSaveBar();
   toast(`"${name}" ${status==='confirmed'?'approved':'dismissed'}`);
 }
 
 function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+function showSaveBar() { document.getElementById('saveBar').classList.add('visible'); }
+function hideSaveBar() { document.getElementById('saveBar').classList.remove('visible'); }
+
+function downloadInterestsCSV() {
+  const csv = Papa.unparse(allInterests);
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'interests_database.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  hideSaveBar();
+  toast('CSV downloaded — replace the file in your folder to persist');
+}
+
+/* Push updated interests_database.csv directly to GitHub via Contents API.
+   Requires a fine-grained PAT stored in localStorage under 'gh_pat'.
+   Scopes needed: Contents (read + write) on this repo only. */
+const GH_OWNER = 'sumanth-tangirala';
+const GH_REPO  = 'ScholarDashboard';
+const GH_FILE  = 'interests_database.csv';
+const GH_BRANCH = 'main';
+
+async function pushInterestsToGitHub() {
+  let pat = localStorage.getItem('gh_pat');
+  if (!pat) {
+    pat = prompt('Enter a GitHub fine-grained PAT with Contents read+write access to this repo:\n(Stored locally in your browser — never sent anywhere except api.github.com)');
+    if (!pat || !pat.trim()) return;
+    localStorage.setItem('gh_pat', pat.trim());
+    pat = pat.trim();
+  }
+
+  const btn = document.getElementById('btnPushGH');
+  const origText = btn.textContent;
+  btn.textContent = 'Pushing…'; btn.disabled = true;
+
+  try {
+    const apiBase = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
+    const headers = { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json' };
+
+    // Fetch current file SHA (required by the API to update a file)
+    const getRes = await fetch(`${apiBase}?ref=${GH_BRANCH}`, { headers });
+    if (!getRes.ok) throw new Error(`GitHub GET failed: ${getRes.status} ${getRes.statusText}`);
+    const { sha } = await getRes.json();
+
+    // Encode updated CSV as base64
+    const csv = Papa.unparse(allInterests);
+    const b64 = btoa(unescape(encodeURIComponent(csv)));
+
+    // Commit
+    const putRes = await fetch(apiBase, {
+      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update interests_database.csv from dashboard', content: b64, sha, branch: GH_BRANCH })
+    });
+    if (!putRes.ok) {
+      const err = await putRes.json().catch(()=>({}));
+      if (putRes.status === 401) { localStorage.removeItem('gh_pat'); throw new Error('Invalid PAT — cleared. Try again.'); }
+      throw new Error(err.message || `GitHub PUT failed: ${putRes.status}`);
+    }
+
+    hideSaveBar();
+    toast('Interests saved to GitHub ✓');
+  } catch (e) {
+    toast('Push failed: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.textContent = origText; btn.disabled = false;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => { updateLoginBtn(); loadPapers(); loadInterests(); });
 </script>
