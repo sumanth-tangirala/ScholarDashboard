@@ -16,7 +16,7 @@ MESSAGE="${1:-"Update papers and interests database - $DATE"}"
 rm -f "$DIR/.git/index.lock" "$DIR/.git/HEAD.lock"
 
 echo "==> Staging changes..."
-git add papers_database.csv interests_database.csv index.html
+git add papers_database.csv interests_database.csv index.html CLAUDE.md
 
 # Only commit if there are staged changes.
 if git diff --cached --quiet; then
