@@ -1,0 +1,14 @@
+interest_name,category,priority_level,relevance_mapping,status,related_to,discovered_from,date_added,date_updated,notes
+Data-driven verification,application,core,definitely,confirmed,"Black-box robotic systems, black-box controllers",manual,2026-03-30,,Central thread of current research
+Verification of visuomotor policies,application,high,definitely,confirmed,"Conformal prediction, diffusion/flow-matching, active learning",manual,2026-03-30,,Next research direction — extending verification to vision-based policies
+Safe & robust robot control,application,high,definitely,confirmed,Verification work extension,manual,2026-03-30,,Ensuring controllers behave safely under uncertainty
+Controller composition,application,high,probably,confirmed,Verification work extension,manual,2026-03-30,,Composing and verifying composed systems
+Generalist policies,application,high,probably,confirmed,"Diffusion/flow-matching methods",manual,2026-03-30,,Broad multi-task robot policies
+Imitation learning,application,high,probably,confirmed,"Generative methods (diffusion, flow matching)",manual,2026-03-30,,Learning from demonstrations
+Reinforcement learning,application,high,probably,confirmed,Complementary to imitation learning,manual,2026-03-30,,Policy learning through reward signals
+Sampling-based motion planning,application,low-moderate,mildly,confirmed,"RRT, PRM, variants",manual,2026-03-30,,Past research area — still slightly interested
+Diffusion models,method,key,definitely,confirmed,"Verification, imitation learning, generalist policies",manual,2026-03-30,,Generative method used across multiple interest areas
+Flow matching,method,key,definitely,confirmed,"Verification, imitation learning, generalist policies",manual,2026-03-30,,Generative method used across multiple interest areas
+Conformal prediction,method,key,definitely,confirmed,Distribution-free uncertainty quantification,manual,2026-03-30,,Key method interest for verification and safety
+Active learning,method,key,definitely,confirmed,Data-driven verification — reducing sample complexity,manual,2026-03-30,,Efficient data collection / query strategies
+Vision-Language-Action models (VLAs),application,medium,probably,confirmed,"Generalist policies, visuomotor policies, imitation learning",manual,2026-03-30,2026-03-30,"Interesting as a policy class but not core research. Upgrade to 'definitely' only for radical/paradigm-shifting VLA papers (e.g. new architectures with major capability jumps, novel verification methods for VLAs)"
