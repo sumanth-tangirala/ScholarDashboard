@@ -308,6 +308,12 @@ a { color: inherit; text-decoration: none; }
 .auth-submit { width: 100%; padding: 10px; background: var(--accent); border: none; border-radius: 8px; color: #1b1b1b; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
 .auth-submit:hover { opacity: 0.88; }
 .auth-submit:active { opacity: 0.72; }
+.modal-btn-row { display: flex; gap: 8px; }
+.modal-btn-row .auth-submit { flex: 1; }
+.btn-modal-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 15px; cursor: pointer; transition: all 0.15s; }
+.btn-modal-cancel:hover { background: var(--bg-hover); color: var(--text); }
+.btn-modal-danger { flex: 1; padding: 10px; background: transparent; border: 1px solid #f28b82; border-radius: 8px; color: #f28b82; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-modal-danger:hover { background: rgba(242,139,130,0.1); }
 
 /* SAVE BAR */
 .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-surface); border-top: 1px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; gap: 12px; z-index: 250; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
@@ -425,6 +431,22 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="auth-error" id="authError"></div>
     <button class="auth-submit" onclick="submitPasskey()">Unlock</button>
+  </div>
+</div>
+
+<!-- GENERIC PROMPT / CONFIRM MODAL -->
+<div class="auth-overlay" id="genericOverlay" onclick="handleGenericOverlayClick(event)">
+  <div class="auth-modal" onclick="event.stopPropagation()">
+    <div class="auth-modal-title" id="genericTitle"></div>
+    <div class="auth-modal-sub" id="genericSub"></div>
+    <div class="auth-input-wrap" id="genericInputWrap">
+      <input class="auth-input" id="genericInput" type="password" autocomplete="off">
+      <button class="auth-toggle-vis" id="genericVisBtn" onclick="toggleGenericVis()" title="Show / hide">
+        <svg id="genericVisIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="auth-error" id="genericError"></div>
+    <div id="genericBtns"></div>
   </div>
 </div>
 
@@ -1036,7 +1058,7 @@ function closeOverlay() {
   /* fallback if transition doesn't fire */
   setTimeout(() => { ol.classList.remove('open', 'closing'); document.body.style.overflow = ''; }, 350);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeOverlay(); closeAbsPopup(); closeSaveDD(); closeLoginModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeOverlay(); closeAbsPopup(); closeSaveDD(); closeLoginModal(); _resolveGeneric(null); } });
 
 /* ===== LIBRARY ===== */
 function renderLibrary() {
@@ -1098,8 +1120,9 @@ function renameList(oldName) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') renderLibrary(); });
   input.addEventListener('blur', commit);
 }
-function deleteList(name) {
-  if (!confirm(`Delete list "${name}"? Papers won't be removed from the database.`)) return;
+async function deleteList(name) {
+  const ok = await showConfirm(`Delete "${name}"?`, `Papers won't be removed from the database.`, 'Delete', true);
+  if (!ok) return;
   delete libraryLists[name];
   persistLists(); updateLibraryBadge();
   toast(`Deleted "${name}"`);
@@ -1136,10 +1159,10 @@ function doCopyList(srcName, targetName) {
   closeCopyDD();
   renderLibrary();
 }
-function doCopyNew(srcName) {
+async function doCopyNew(srcName) {
   closeCopyDD();
-  const name = prompt('New list name:');
-  if (!name || !name.trim()) return;
+  const name = await showPrompt('New list name', null, 'List name');
+  if (!name) return;
   const trimmed = name.trim();
   if (!libraryLists[trimmed]) libraryLists[trimmed] = [];
   const added = libraryLists[srcName].filter(k => !libraryLists[trimmed].includes(k));
@@ -1194,6 +1217,79 @@ function updateI(name, status) {
   toast(`"${name}" ${status==='confirmed'?'approved':'dismissed'}`);
 }
 
+/* ===== GENERIC MODAL (prompt / confirm) ===== */
+let _genericResolve = null;
+
+function _openGeneric({ title, sub, inputPlaceholder, showInput, submitLabel, cancelLabel, danger }) {
+  return new Promise(resolve => {
+    _genericResolve = resolve;
+    document.getElementById('genericTitle').textContent = title;
+    const subEl = document.getElementById('genericSub');
+    subEl.textContent = sub || '';
+    subEl.style.display = sub ? '' : 'none';
+    const wrap = document.getElementById('genericInputWrap');
+    const input = document.getElementById('genericInput');
+    wrap.style.display = showInput ? '' : 'none';
+    if (showInput) {
+      input.value = '';
+      input.placeholder = inputPlaceholder || '';
+      input.type = 'password';
+      document.getElementById('genericVisIcon').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      input.classList.remove('error');
+    }
+    document.getElementById('genericError').textContent = '';
+    const btnsEl = document.getElementById('genericBtns');
+    if (cancelLabel) {
+      const confirmCls = danger ? 'btn-modal-danger' : 'auth-submit';
+      btnsEl.innerHTML = `<div class="modal-btn-row">
+        <button class="btn-modal-cancel" onclick="_resolveGeneric(null)">${cancelLabel}</button>
+        <button class="${confirmCls}" onclick="_resolveGeneric(true)">${submitLabel}</button>
+      </div>`;
+    } else {
+      btnsEl.innerHTML = `<button class="auth-submit" onclick="_resolveGenericInput()">${submitLabel}</button>`;
+      input.onkeydown = e => { if (e.key === 'Enter') _resolveGenericInput(); };
+    }
+    document.getElementById('genericOverlay').classList.add('open');
+    if (showInput) setTimeout(() => input.focus(), 120);
+  });
+}
+function _resolveGeneric(val) {
+  document.getElementById('genericOverlay').classList.remove('open');
+  if (_genericResolve) { const r = _genericResolve; _genericResolve = null; r(val); }
+}
+function _resolveGenericInput() {
+  const val = document.getElementById('genericInput').value.trim();
+  if (!val) {
+    const input = document.getElementById('genericInput');
+    input.classList.add('error');
+    document.getElementById('genericError').textContent = 'This field cannot be empty.';
+    setTimeout(() => input.classList.remove('error'), 600);
+    return;
+  }
+  _resolveGeneric(val);
+}
+function handleGenericOverlayClick(e) {
+  if (e.target === document.getElementById('genericOverlay')) _resolveGeneric(null);
+}
+function toggleGenericVis() {
+  const input = document.getElementById('genericInput');
+  const icon = document.getElementById('genericVisIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+function showPrompt(title, sub, placeholder) {
+  return _openGeneric({ title, sub, inputPlaceholder: placeholder, showInput: true, submitLabel: 'OK' });
+}
+function showConfirm(title, sub, confirmLabel = 'Confirm', danger = false) {
+  return _openGeneric({ title, sub, showInput: false, submitLabel: confirmLabel, cancelLabel: 'Cancel', danger });
+}
+
 function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 
 function showSaveBar() { document.getElementById('saveBar').classList.add('visible'); }
@@ -1222,10 +1318,13 @@ const GH_BRANCH = 'main';
 async function pushInterestsToGitHub() {
   let pat = localStorage.getItem('gh_pat');
   if (!pat) {
-    pat = prompt('Enter a GitHub fine-grained PAT with Contents read+write access to this repo:\n(Stored locally in your browser — never sent anywhere except api.github.com)');
-    if (!pat || !pat.trim()) return;
-    localStorage.setItem('gh_pat', pat.trim());
-    pat = pat.trim();
+    pat = await showPrompt(
+      'GitHub Personal Access Token',
+      'Fine-grained PAT with Contents read+write access. Stored in your browser — only sent to api.github.com.',
+      'Paste PAT here'
+    );
+    if (!pat) return;
+    localStorage.setItem('gh_pat', pat);
   }
 
   const btn = document.getElementById('btnPushGH');
