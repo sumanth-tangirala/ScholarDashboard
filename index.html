@@ -17,7 +17,7 @@
   --border: rgba(255,255,255,0.12);
   --border-subtle: rgb(255 255 255 / 20%);
   --text: #D8D9DD;
-  --text-secondary: rgba(216,217,221,0.65);
+  --text-secondary: rgb(216 217 221 / 84%);
   --text-muted: rgb(216 217 221 / 67%);
   --accent: #fbb13c;
   --accent-dim: #fbb13c20;
@@ -472,9 +472,9 @@ a { color: inherit; text-decoration: none; }
 
 <!-- SAVE BAR -->
 <div class="save-bar" id="saveBar">
-  <span class="save-bar-msg"><strong>Unsaved interest changes</strong></span>
-  <button class="btn-save-csv" onclick="pushInterestsToGitHub()" id="btnPushGH">Push to GitHub</button>
-  <button class="btn-save-csv" onclick="downloadInterestsCSV()" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border);">Download CSV</button>
+  <span class="save-bar-msg"><strong>Unsaved changes</strong></span>
+  <button class="btn-save-csv" onclick="pushToGitHub()" id="btnPushGH">Push to GitHub</button>
+  <button class="btn-save-csv" onclick="downloadChanges()" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border);">Download CSV</button>
   <button class="btn-dismiss-bar" onclick="hideSaveBar()" title="Dismiss">&times;</button>
 </div>
 
@@ -596,14 +596,43 @@ function togglePasskeyVis() {
 /* ===== STATE ===== */
 let allPapers = [], allInterests = [];
 let currentTab = 'all', currentRel = 'all', currentIStatus = 'suggested', hideRead = true;
-let readSet = new Set(JSON.parse(localStorage.getItem('scholar_read') || '[]'));
-let starSet = new Set(JSON.parse(localStorage.getItem('scholar_starred') || '[]'));
-let libraryLists = JSON.parse(localStorage.getItem('scholar_lists') || '{}');
+let readSet = new Set();
+let starSet = new Set();
+let libraryLists = {};
 let _dataLoaded = false;
+let _interestsDirty = false;
+let _stateDirty = false;
 
-function persistRead() { localStorage.setItem('scholar_read', JSON.stringify([...readSet])); }
-function persistStars() { localStorage.setItem('scholar_starred', JSON.stringify([...starSet])); }
-function persistLists() { localStorage.setItem('scholar_lists', JSON.stringify(libraryLists)); }
+/* Bootstrap state from papers CSV columns (called after allPapers is loaded) */
+function bootstrapStateFromCSV() {
+  readSet.clear(); starSet.clear(); libraryLists = {};
+  allPapers.forEach(p => {
+    const k = paperKey(p);
+    if (p.is_read    === 'true') readSet.add(k);
+    if (p.is_starred === 'true') starSet.add(k);
+    (p.user_lists || '').split('|').filter(Boolean).forEach(name => {
+      if (!libraryLists[name]) libraryLists[name] = [];
+      libraryLists[name].push(k);
+    });
+  });
+}
+
+/* Write current readSet/starSet/libraryLists back into allPapers rows */
+function flushStateToCSV() {
+  allPapers.forEach(p => {
+    const k = paperKey(p);
+    p.is_read    = readSet.has(k)    ? 'true' : 'false';
+    p.is_starred = starSet.has(k)    ? 'true' : 'false';
+    const inLists = Object.entries(libraryLists)
+      .filter(([, keys]) => keys.includes(k))
+      .map(([name]) => name);
+    p.user_lists = inLists.join('|');
+  });
+}
+
+function persistRead()   { flushStateToCSV(); _stateDirty = true; showSaveBar(); }
+function persistStars()  { flushStateToCSV(); _stateDirty = true; showSaveBar(); }
+function persistLists()  { flushStateToCSV(); _stateDirty = true; showSaveBar(); }
 function paperKey(p) { return (p.title || '').trim().substring(0, 80); }
 function paperInAnyList(k) { return Object.values(libraryLists).some(arr => arr.includes(k)); }
 function listCount() { return Object.values(libraryLists).reduce((n, arr) => n + arr.length, 0); }
@@ -614,6 +643,7 @@ function loadPapers() {
     download: true, header: true, skipEmptyLines: true,
     complete: r => {
       allPapers = r.data.filter(p => p.title && p.title.trim());
+      bootstrapStateFromCSV();
       updateLibraryBadge();
       applyFilters();
       revealContent();
@@ -978,6 +1008,7 @@ function buildDDItems(key) {
 function createListFromDD(input, key) {
   const name = input.value.trim();
   if (!name) return;
+  if (name.includes('|')) { toast('List name cannot contain "|"'); input.select(); return; }
   if (!libraryLists[name]) libraryLists[name] = [];
   if (!libraryLists[name].includes(key)) libraryLists[name].push(key);
   persistLists(); updateLibraryBadge();
@@ -1170,6 +1201,7 @@ async function doCopyNew(srcName) {
   const name = await showPrompt('New list name', null, 'List name');
   if (!name) return;
   const trimmed = name.trim();
+  if (trimmed.includes('|')) { toast('List name cannot contain "|"'); return; }
   if (!libraryLists[trimmed]) libraryLists[trimmed] = [];
   const added = libraryLists[srcName].filter(k => !libraryLists[trimmed].includes(k));
   libraryLists[trimmed].push(...added);
@@ -1301,27 +1333,50 @@ function toast(msg) { const t=document.getElementById('toast'); t.textContent=ms
 function showSaveBar() { document.getElementById('saveBar').classList.add('visible'); }
 function hideSaveBar() { document.getElementById('saveBar').classList.remove('visible'); }
 
-function downloadInterestsCSV() {
-  const csv = Papa.unparse(allInterests);
-  const blob = new Blob([csv], { type: 'text/csv' });
+function _triggerDownload(content, filename, type) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'interests_database.csv';
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
-  hideSaveBar();
-  toast('CSV downloaded — replace the file in your folder to persist');
+}
+function downloadChanges() {
+  if (_stateDirty || _interestsDirty) {
+    if (_stateDirty)    _triggerDownload(Papa.unparse(allPapers),    'papers_database.csv',    'text/csv');
+    if (_interestsDirty) _triggerDownload(Papa.unparse(allInterests), 'interests_database.csv', 'text/csv');
+    hideSaveBar();
+    toast('Downloaded — replace the file(s) in your folder to persist');
+  }
 }
 
-/* Push updated interests_database.csv directly to GitHub via Contents API.
+/* Push changed files directly to GitHub via Contents API.
    Requires a fine-grained PAT stored in localStorage under 'gh_pat'.
    Scopes needed: Contents (read + write) on this repo only. */
-const GH_OWNER = 'sumanth-tangirala';
-const GH_REPO  = 'ScholarDashboard';
-const GH_FILE  = 'interests_database.csv';
+const GH_OWNER  = 'sumanth-tangirala';
+const GH_REPO   = 'ScholarDashboard';
 const GH_BRANCH = 'main';
 
-async function pushInterestsToGitHub() {
+async function _ghPushFile(headers, filename, content, message) {
+  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filename}`;
+  const getRes = await fetch(`${apiUrl}?ref=${GH_BRANCH}`, { headers });
+  if (!getRes.ok) throw new Error(`GitHub GET ${filename} failed: ${getRes.status}`);
+  const { sha } = await getRes.json();
+  const b64 = btoa(unescape(encodeURIComponent(content)));
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, content: b64, sha, branch: GH_BRANCH })
+  });
+  if (!putRes.ok) {
+    const err = await putRes.json().catch(() => ({}));
+    if (putRes.status === 401) { localStorage.removeItem('gh_pat'); throw new Error('Invalid PAT — cleared. Try again.'); }
+    throw new Error(err.message || `GitHub PUT ${filename} failed: ${putRes.status}`);
+  }
+}
+
+async function pushToGitHub() {
+  if (!_stateDirty && !_interestsDirty) return;
+
   let pat = localStorage.getItem('gh_pat');
   if (!pat) {
     pat = await showPrompt(
@@ -1337,32 +1392,16 @@ async function pushInterestsToGitHub() {
   const origText = btn.textContent;
   btn.textContent = 'Pushing…'; btn.disabled = true;
 
+  const headers = { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json' };
   try {
-    const apiBase = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
-    const headers = { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json' };
+    if (_stateDirty)
+      await _ghPushFile(headers, 'papers_database.csv', Papa.unparse(allPapers), 'Update papers_database.csv from dashboard');
+    if (_interestsDirty)
+      await _ghPushFile(headers, 'interests_database.csv', Papa.unparse(allInterests), 'Update interests_database.csv from dashboard');
 
-    // Fetch current file SHA (required by the API to update a file)
-    const getRes = await fetch(`${apiBase}?ref=${GH_BRANCH}`, { headers });
-    if (!getRes.ok) throw new Error(`GitHub GET failed: ${getRes.status} ${getRes.statusText}`);
-    const { sha } = await getRes.json();
-
-    // Encode updated CSV as base64
-    const csv = Papa.unparse(allInterests);
-    const b64 = btoa(unescape(encodeURIComponent(csv)));
-
-    // Commit
-    const putRes = await fetch(apiBase, {
-      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Update interests_database.csv from dashboard', content: b64, sha, branch: GH_BRANCH })
-    });
-    if (!putRes.ok) {
-      const err = await putRes.json().catch(()=>({}));
-      if (putRes.status === 401) { localStorage.removeItem('gh_pat'); throw new Error('Invalid PAT — cleared. Try again.'); }
-      throw new Error(err.message || `GitHub PUT failed: ${putRes.status}`);
-    }
-
+    _stateDirty = false; _interestsDirty = false;
     hideSaveBar();
-    toast('Interests saved to GitHub ✓');
+    toast('Saved to GitHub ✓');
   } catch (e) {
     toast('Push failed: ' + e.message);
     console.error(e);
@@ -1372,6 +1411,7 @@ async function pushInterestsToGitHub() {
 }
 
 document.addEventListener('DOMContentLoaded', () => { updateLoginBtn(); loadPapers(); loadInterests(); });
+
 
 </script>
 </body>

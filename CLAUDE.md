@@ -52,6 +52,15 @@ Papers appear in both paper tabs if their `source_mode` is `"email,web_survey"`.
 
 The website dynamically reads `papers_database.csv` and `interests_database.csv` using PapaParse at load time. No build step is needed — just update the CSVs and refresh the page. All three files must be in the same folder.
 
+### GitHub Sync Scripts
+
+Two scripts manage the canonical database state on GitHub:
+
+- **`pull_from_github.sh`** — Fetches the latest `papers_database.csv` and `interests_database.csv` from GitHub and updates local files if the remote is newer. Uses HTTPS + `.github_token`. Run at the **start** of every task (Step 0) to avoid working with stale data. Exits non-zero on failure.
+- **`sync_to_github.sh`** — Commits and pushes the updated CSVs (and `index.html`) to GitHub after a run completes. Run at the **end** of every task (Step 10). Requires `.github_token` file in the project directory.
+
+The token file (`.github_token`) is gitignored and must be present locally for both scripts to work.
+
 ### Serving
 
 A `launchd` daemon (`com.scholar-dashboard.plist`) runs `python3 -m http.server 80` bound to localhost from this folder. It starts on boot and auto-restarts if it crashes. `/etc/hosts` maps `scholar.local` to `127.0.0.1`.
@@ -133,6 +142,7 @@ Run targeted searches grouped by research interest:
 
 # Execution Workflow (both modes)
 
+0. **Pull from GitHub** — **ALWAYS the first step.** Run `bash pull_from_github.sh` from the project directory. This fetches the latest `papers_database.csv` and `interests_database.csv` from GitHub, ensuring the task starts with up-to-date data regardless of what previous sessions pushed. If this script exits non-zero, **abort immediately** and notify the user — do not proceed with stale or missing data.
 1. **Load interests** — Read `interests_database.csv` as the sole source of truth for filtering, ranking, and search query construction. Use confirmed interests (status="confirmed") for active filtering; use their `relevance_mapping` column for tier assignment. Ignore rejected interests. Treat suggested interests as "mildly" relevant.
 2. **Source** — Gather raw paper list (from emails or web sources above)
 3. **Deduplicate** — Remove papers already in the database or appearing multiple times. If a paper exists from a different source, update `source_mode` to reflect both sources.
@@ -142,7 +152,8 @@ Run targeted searches grouped by research interest:
 7. **Generate headline & summary** — From the title + abstract, generate: (a) a concise ~10-15 word headline takeaway for the `headline` column, and (b) a 3-4 sentence summary of the contribution/approach/result for the `summary` column.
 8. **Discover new interests** — Identify recurring themes/methods in papers that don't match any existing interest in the database. Add as "suggested" entries to `interests_database.csv` (see Interest Discovery below).
 9. **Update databases** — Append new papers to `papers_database.csv` and new suggested interests to `interests_database.csv`
-10. **Present** — Share the updated website link with user. If new interests were suggested, mention the Interests tab.
+10. **Sync to GitHub** — Run `bash sync_to_github.sh` to commit and push the updated databases back to GitHub. This is the canonical publish step.
+11. **Present** — Share the updated website link with user. If new interests were suggested, mention the Interests tab.
 
 ---
 
@@ -165,6 +176,9 @@ Maintain a CSV file (`papers_database.csv`) with these columns:
 | `summary` | 3-4 sentence generated summary of the paper's contribution, approach, and key result. Shown on click in the website UI. |
 | `abstract` | **The actual abstract from the paper** — fetch from arXiv, conference page, or publisher. Typically 100-300 words. Do NOT generate or paraphrase this; copy the real abstract verbatim. |
 | `notes` | Any additional notes |
+| `is_read` | `"true"` or `"false"` — set by the user in the dashboard. **Never overwrite** when appending new papers; leave as `"false"` for new rows. |
+| `is_starred` | `"true"` or `"false"` — set by the user in the dashboard. **Never overwrite** when appending new papers; leave as `"false"` for new rows. |
+| `user_lists` | Pipe-separated (`\|`) list names the user has saved this paper to (e.g. `"reading-list\|important"`). **Never overwrite** when appending new papers; leave empty for new rows. |
 
 ---
 
