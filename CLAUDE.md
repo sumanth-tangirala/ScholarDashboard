@@ -151,7 +151,7 @@ Run targeted searches grouped by research interest:
 6. **Fetch metadata & abstract** — For each new paper, visit the paper page (arXiv, conference site, etc.) to extract the **exact title**, **full author list**, **publication date/year**, and **actual abstract** (verbatim, 100-300 words). Store the abstract in the `abstract` column. Do NOT generate or paraphrase the abstract — it must be the real text from the paper.
 7. **Generate headline & summary** — From the title + abstract, generate: (a) a concise ~10-15 word headline takeaway for the `headline` column, and (b) a 3-4 sentence summary of the contribution/approach/result for the `summary` column.
 8. **Discover new interests** — Identify recurring themes/methods in papers that don't match any existing interest in the database. Add as "suggested" entries to `interests_database.csv` (see Interest Discovery below).
-9. **Update databases** — Append new papers to `papers_database.csv` and new suggested interests to `interests_database.csv`
+9. **Assign IDs & update databases** — For each new paper, generate a unique `id` using the **Paper ID Format** rules (see below): `{lastname}-{year}-{keyword1}-{keyword2}`, with `-2`/`-3` suffixes for collisions. The `id` must be set before writing the row. Append new papers to `papers_database.csv` (with `id` as the first column) and new suggested interests to `interests_database.csv`.
 10. **Sync to GitHub** — Run `bash sync_to_github.sh` to commit and push the updated databases back to GitHub. This is the canonical publish step.
 11. **Present** — Share the updated website link with user. If new interests were suggested, mention the Interests tab.
 
@@ -163,6 +163,7 @@ Maintain a CSV file (`papers_database.csv`) with these columns:
 
 | Column | Description |
 |--------|-------------|
+| `id` | Unique paper ID — see **Paper ID Format** section below. **Always the first column.** |
 | `title` | Paper title (use the exact title from the paper, not a paraphrase) |
 | `authors` | Author list (extract from the paper page; use "not specified" only as last resort) |
 | `venue` | Conference/journal/arxiv |
@@ -179,6 +180,33 @@ Maintain a CSV file (`papers_database.csv`) with these columns:
 | `is_read` | `"true"` or `"false"` — set by the user in the dashboard. **Never overwrite** when appending new papers; leave as `"false"` for new rows. |
 | `is_starred` | `"true"` or `"false"` — set by the user in the dashboard. **Never overwrite** when appending new papers; leave as `"false"` for new rows. |
 | `user_lists` | Pipe-separated (`\|`) list names the user has saved this paper to (e.g. `"reading-list\|important"`). **Never overwrite** when appending new papers; leave empty for new rows. |
+
+---
+
+# Paper ID Format
+
+Every paper in the database must have a unique `id` in the **first column**. IDs are human-readable slugs with a hierarchical tie-breaking scheme:
+
+**Format:** `{lastname}-{year}-{keyword1}-{keyword2}`
+
+| Component | Rules |
+|-----------|-------|
+| `lastname` | First author's last name, lowercase, ASCII-only, non-alphanumeric chars stripped. Use `unknown` if authors is "not specified". |
+| `year` | 4-digit year extracted from `publishing_date` (e.g. `2026` from `"Mar 2026"`). |
+| `keyword1`, `keyword2` | First 2 meaningful words from the title, after removing stop words (a, an, the, for, of, with, via, using, in, on, to, and, or, from, by, is, are, be, can, will, has, have, not, but, as, at, new, novel, etc.). Lowercase, ASCII-only. |
+| **Tie-breaking** | If the base slug already exists in the DB, append `-2`, `-3`, etc. |
+
+**Examples:**
+- `vanwijk-2026-backup-cbf` — "Generalizations of Backup CBFs" by D. van Wijk (2026)
+- `ames-2026-safe-locomotion` — "Safe Locomotion via CBFs" by Ames (2026)
+- `unknown-2025-conformal-prediction` — paper with no listed authors (2025)
+- `unknown-2025-conformal-prediction-2` — a second paper from 2025 with the same slug base
+
+**When generating IDs for new papers:**
+1. Build the base slug from `{lastname}-{year}-{keyword1}-{keyword2}`
+2. Load the full set of existing IDs from `papers_database.csv`
+3. If the base slug is already taken, append `-2`, `-3`, etc. until unique
+4. Set the `id` column value **before** appending to the CSV — never leave it empty
 
 ---
 
