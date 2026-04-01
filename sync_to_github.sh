@@ -1,5 +1,5 @@
 #!/bin/bash
-# Commit and push the latest papers/interests data to GitHub.
+# Commit and push the latest papers/interests/groups data to GitHub.
 # Run this after any Mode 1 (email digest) or Mode 2 (weekly survey) task completes.
 # Usage: ./sync_to_github.sh [optional commit message]
 
@@ -16,7 +16,7 @@ MESSAGE="${1:-"Update papers and interests database - $DATE"}"
 rm -f "$DIR/.git/index.lock" "$DIR/.git/HEAD.lock"
 
 echo "==> Staging changes..."
-git add papers_database.csv interests_database.csv index.html CLAUDE.md
+git add papers_database.csv interests_database.csv groups_database.csv index.html CLAUDE.md
 
 # Only commit if there are staged changes.
 if git diff --cached --quiet; then

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Pull the latest papers/interests databases from GitHub before running a scheduled task.
-# Only updates papers_database.csv and interests_database.csv — does NOT do a full git pull,
+# Pull the latest papers/interests/groups databases from GitHub before running a scheduled task.
+# Only updates papers_database.csv, interests_database.csv, and groups_database.csv — does NOT do a full git pull,
 # which avoids merge conflicts with local code changes that may not yet be pushed.
 #
 # Exit codes:
@@ -39,7 +39,7 @@ echo "==> Fetch succeeded."
 
 # --- Check and update each database file ---
 UPDATED=0
-DB_FILES=("papers_database.csv" "interests_database.csv")
+DB_FILES=("papers_database.csv" "interests_database.csv" "groups_database.csv")
 
 for FILE in "${DB_FILES[@]}"; do
   # Check if file differs between local working tree and origin/main.
