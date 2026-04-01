@@ -1834,10 +1834,15 @@ function openPaper(id, event) {
   location.hash = '#paper/' + paperId;
 }
 
+let _savedScrollTop = 0;
+
 function showPaperDetail(id) {
   const p = allPapers.find(pp => pp.id === id);
   if (!p) { applyHash(); return; }
   _paperViewActive = true;
+
+  // Save scroll position before switching to detail view
+  _savedScrollTop = document.getElementById('mainScroll').scrollTop;
 
   // Close group overlay if open (visually only, don't touch history)
   closeOverlay(true);
@@ -2005,14 +2010,31 @@ function applyHash() {
     if (id) { showPaperDetail(id); return; }
   }
 
-  // Clear paper view state if navigating away
+  // Clear paper view state if navigating away; restore scroll position
+  const wasInPaper = _paperViewActive;
   _paperViewActive = false;
   document.getElementById('sec-paper').classList.remove('active');
+  if (wasInPaper) {
+    requestAnimationFrame(() => {
+      const ms = document.getElementById('mainScroll');
+      ms.style.scrollBehavior = 'auto';
+      ms.scrollTop = _savedScrollTop;
+      ms.style.scrollBehavior = '';
+    });
+  }
 
-  // Group overlay route
+  // Group overlay route — restore underlying tab first so feed is visible behind overlay
   if (hash.startsWith('group/')) {
     const groupName = decodeURIComponent(hash.slice(6));
-    if (groupName) { openGroup(groupName, true); return; }
+    if (groupName) {
+      const paperTabs = ['all','email'];
+      if (paperTabs.includes(currentTab)) {
+        document.getElementById('sec-papers').classList.add('active');
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentTab));
+      }
+      openGroup(groupName, true);
+      return;
+    }
   }
 
   // Close overlay if navigating away from a group route
