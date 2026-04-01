@@ -613,7 +613,7 @@ a { color: inherit; text-decoration: none; }
   <button class="btn-dismiss-bar" onclick="hideSaveBar()" title="Dismiss">&times;</button>
   <div class="save-bar-btns">
     <button class="btn-save-csv" onclick="pushToGitHub()" id="btnPushGH">Push to GitHub</button>
-    <button class="btn-save-csv" onclick="downloadChanges()">Download CSV</button>
+    <button class="btn-save-csv" onclick="resetChanges()">Reset</button>
   </div>
 </div>
 
@@ -1791,14 +1791,12 @@ function _triggerDownload(content, filename, type) {
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
-function downloadChanges() {
-  if (_stateDirty || _interestsDirty || _groupsDirty) {
-    if (_stateDirty)     _triggerDownload(Papa.unparse(allPapers),    'papers_database.csv',    'text/csv');
-    if (_interestsDirty) _triggerDownload(Papa.unparse(allInterests), 'interests_database.csv', 'text/csv');
-    if (_groupsDirty)    _triggerDownload(Papa.unparse(allGroups, {delimiter:'|'}),    'groups_database.csv',    'text/csv');
-    hideSaveBar();
-    toast('Downloaded — replace the file(s) in your folder to persist');
-  }
+function resetChanges() {
+  if (!confirm('Discard all unsaved changes and reload from the CSV files?')) return;
+  _stateDirty = false; _interestsDirty = false; _groupsDirty = false;
+  hideSaveBar();
+  loadPapers(); loadInterests(); loadGroups();
+  toast('Changes discarded — reloaded from CSV files');
 }
 
 /* Push changed files directly to GitHub via Contents API.
