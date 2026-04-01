@@ -154,12 +154,13 @@ a { color: inherit; text-decoration: none; }
 /* [5] Button micro-interactions */
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
 @keyframes pop-sm { 0% { transform: scale(1); } 40% { transform: scale(1.15); } 100% { transform: scale(1); } }
-.btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted); font-size: 14px; line-height: 1; transition: all 0.2s; }
+.btn-icon { background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 4px; color: var(--text-muted); font-size: 14px; line-height: 1; transition: all 0.2s; }
 .btn-icon:hover { background: var(--bg-hover); color: var(--text); }
 .btn-icon:active { transform: scale(0.85); }
 .btn-icon.starred { color: var(--star); }
 .btn-icon.is-read-btn { font-size: 12px; }
 .btn-icon.is-read-btn.done { color: var(--green); }
+.btn-icon.btn-delete:hover { color: #ff6b6b; background: none; }
 .btn-icon.pop { animation: pop 0.3s ease; }
 .btn-icon.pop-sm { animation: pop-sm 0.25s ease; }
 
@@ -310,6 +311,7 @@ a { color: inherit; text-decoration: none; }
 
 /* [12] SAVE DROPDOWN — animated entrance */
 .save-anchor { position: relative; display: inline-flex; }
+.save-anchor > .btn-icon { font-size: 16px; padding-bottom: 7px; }
 .save-dd { position: fixed; width: 210px; background: #000000ee; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.55); z-index: 9999; overflow: hidden; animation: dropdown-in 0.15s ease forwards; }
 .save-dd-input { width: 100%; padding: 8px 12px; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; outline: none; }
 .save-dd-input::placeholder { color: var(--text-muted); }
@@ -1043,7 +1045,7 @@ function topCardHTML(p) {
     <div class="p-title">${esc(p.title)}</div>
     ${p.authors&&p.authors!=='not specified'?`<div class="p-authors">${esc(p.authors)}</div>`:''}
     <div class="p-meta">
-      <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)}</span></div>
+      <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)} ${deleteBtn(p)}</span></div>
       <div class="p-detail-panel" data-summary="${hasSummary?escAttr(p.summary):''}" data-abstract="${hasAbstract?escAttr(p.abstract):''}"></div>
       <div class="p-meta-row">
         <span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>
@@ -1064,7 +1066,7 @@ function topicItemHTML(p) {
     <div class="p-title">${esc(p.title)}</div>
     ${p.authors&&p.authors!=='not specified'?`<div class="p-authors">${esc(p.authors)}</div>`:''}
     <div class="t-sub">
-      <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)}</span></div>
+      <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)} ${deleteBtn(p)}</span></div>
       <div class="p-detail-panel" data-summary="${hasSummary?escAttr(p.summary):''}" data-abstract="${hasAbstract?escAttr(p.abstract):''}"></div>
       <div class="p-meta-row">
         <span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>
@@ -1089,6 +1091,10 @@ function saveBtn(p) {
   return `<span class="save-anchor">
     <button class="btn-icon ${inAny?'done':''}" onclick="event.preventDefault();event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--list)':''}">&#9776;</button>
   </span>`;
+}
+function deleteBtn(p) {
+  const k = paperKey(p);
+  return `<button class="btn-icon btn-delete" onclick="event.preventDefault();event.stopPropagation();deletePaper('${escAttr(k)}',this)" title="Delete paper"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>`;
 }
 
 function summaryBtn(p) {
@@ -1272,6 +1278,21 @@ function toggleRead(k, btn) {
   refresh();
 }
 
+async function deletePaper(k, btn) {
+  if (!isAuthed()) { requireAuth(() => deletePaper(k, btn)); return; }
+  const p = allPapers.find(x => paperKey(x) === k);
+  const label = p ? (p.title || k) : k;
+  const ok = await showConfirm(`Delete paper?`, label, 'Delete', true);
+  if (!ok) return;
+  closeSaveDD();
+  allPapers = allPapers.filter(x => paperKey(x) !== k);
+  readSet.delete(k); starSet.delete(k);
+  Object.values(libraryLists).forEach(arr => { const i = arr.indexOf(k); if (i >= 0) arr.splice(i, 1); });
+  _stateDirty = true; showSaveBar();
+  toast(`Deleted "${p ? p.title : k}"`);
+  refresh();
+}
+
 function refresh() {
   if (['all','email'].includes(currentTab)) applyFilters();
   else if (currentTab === 'library') renderLibrary();
@@ -1335,73 +1356,67 @@ function closeOverlay(skipHistory) {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeOverlay(); closeAbsPopup(); closeSaveDD(); closeLoginModal(); _resolveGeneric(null); } });
 
 /* ===== LIBRARY ===== */
+let _collapsedLibGroups = new Set(['all']);
+function toggleLibGroup(headerEl, key) {
+  const group = headerEl.closest('.interest-group');
+  group.classList.toggle('collapsed');
+  if (group.classList.contains('collapsed')) _collapsedLibGroups.add(key);
+  else _collapsedLibGroups.delete(key);
+}
+function libGroupHTML(key, icon, label, papers, extra) {
+  const collapsed = _collapsedLibGroups.has(key) ? ' collapsed' : '';
+  const body = papers.length ? papers.map(topicItemHTML).join('') : '<div class="library-list-empty">No papers in this list</div>';
+  return `<div class="interest-group${collapsed}"><div class="interest-group-inner"><div class="interest-group-header" onclick="toggleLibGroup(this,'${escAttr(key)}')">${icon} ${esc(label)} <span class="interest-group-count">${papers.length}</span>${extra||''}<svg class="chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></div><div class="interest-group-body">${body}</div></div></div>`;
+}
 function renderLibrary() {
   const starred = allPapers.filter(p => starSet.has(paperKey(p)));
+  const read = allPapers.filter(p => readSet.has(paperKey(p)));
+  sortPapers(read);
   const listNames = Object.keys(libraryLists);
-
   const noted = allPapers.filter(p => p.user_notes && p.user_notes.trim());
   sortPapers(noted);
 
   let html = '';
-  if (!starred.length && !listNames.length && !noted.length) {
-    html = '<div class="library-empty">No papers in your library yet. Star papers or add them to lists to see them here.</div>';
+  if (!allPapers.length) {
+    html = '<div class="library-empty">No papers in the database yet.</div>';
   } else {
-    if (starred.length) {
-      html += `<div class="library-section">
-        <div class="library-section-header"><span class="star-icon">&#9733;</span> Starred (${starred.length})</div>
-        <div class="topic-card"><div class="topic-body">${starred.map(topicItemHTML).join('')}</div></div>
-      </div>`;
-    }
-    if (noted.length) {
-      html += `<div class="library-section">
-        <div class="library-section-header"><span style="font-size:15px">&#128221;</span> Notes (${noted.length})</div>
-        <div class="topic-card"><div class="topic-body">${noted.map(topicItemHTML).join('')}</div></div>
-      </div>`;
-    }
-    listNames.forEach((name, idx) => {
+    if (starred.length) html += libGroupHTML('starred', '&#9733;', 'Starred', starred);
+    if (read.length) html += libGroupHTML('read', '&#10003;', 'Read', read);
+    if (noted.length) html += libGroupHTML('noted', '&#128221;', 'Notes', noted);
+    listNames.forEach(name => {
       const papers = allPapers.filter(p => libraryLists[name].includes(paperKey(p)));
-      html += `<div class="library-section" data-list="${escAttr(name)}">
-        <div class="library-section-header">
-          <span>&#9776;</span>
-          <span class="lib-list-name">${esc(name)}</span>
-          <span style="color:var(--text-muted);font-size:13px;font-weight:400">(${papers.length})</span>
-          <span class="library-actions">
-            <button onclick="renameList('${escAttr(name)}')">Rename</button>
-            <button onclick="showCopyDD(this,'${escAttr(name)}')">Copy to...</button>
-            <button class="danger" onclick="deleteList('${escAttr(name)}')">Delete</button>
-          </span>
-        </div>
-        <div class="topic-card"><div class="topic-body">${papers.length ? papers.map(topicItemHTML).join('') : '<div class="library-list-empty">No papers in this list</div>'}</div></div>
-      </div>`;
+      const actions = `<span class="library-actions" onclick="event.stopPropagation()"><button onclick="renameList('${escAttr(name)}')">Rename</button><button onclick="showCopyDD(this,'${escAttr(name)}')">Copy to...</button><button class="danger" onclick="deleteList('${escAttr(name)}')">Delete</button></span>`;
+      html += libGroupHTML('list-'+name, '&#9776;', name, papers, actions);
     });
+    const MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    function pubDateVal(p) {
+      const s = (p.publishing_date||'').trim().toLowerCase();
+      const m = s.match(/^([a-z]+)\s+(\d{4})$/);
+      if (m) return parseInt(m[2])*12 + (MON[m[1]]||0);
+      const y = parseInt(s); return y ? y*12 : 0;
+    }
+    const allSorted = allPapers.slice().sort((a,b) => {
+      const d = pubDateVal(b) - pubDateVal(a);
+      if (d !== 0) return d;
+      const r = (REL_ORDER[a.relevance_tier]??9) - (REL_ORDER[b.relevance_tier]??9);
+      if (r !== 0) return r;
+      return (a.title||'').localeCompare(b.title||'');
+    });
+    html += libGroupHTML('all', '&#128218;', 'All', allSorted);
   }
   document.getElementById('libraryContent').innerHTML = html;
 }
 
 /* Library list management */
-function renameList(oldName) {
-  const section = document.querySelector(`.library-section[data-list="${CSS.escape(oldName)}"]`);
-  if (!section) return;
-  const headerEl = section.querySelector('.lib-list-name');
-  if (!headerEl) return;
-  const input = document.createElement('input');
-  input.className = 'library-rename-input';
-  input.value = oldName;
-  headerEl.replaceWith(input);
-  input.focus();
-  input.select();
-  const commit = () => {
-    const newName = input.value.trim();
-    if (newName && newName !== oldName && !libraryLists[newName]) {
-      libraryLists[newName] = libraryLists[oldName];
-      delete libraryLists[oldName];
-      persistLists();
-      toast(`Renamed to "${newName}"`);
-    }
-    renderLibrary();
-  };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') renderLibrary(); });
-  input.addEventListener('blur', commit);
+async function renameList(oldName) {
+  const newName = await showPrompt('Rename list', null, 'List name', oldName);
+  if (!newName || newName === oldName) return;
+  if (libraryLists[newName]) { toast('A list with that name already exists'); return; }
+  libraryLists[newName] = libraryLists[oldName];
+  delete libraryLists[oldName];
+  persistLists();
+  toast(`Renamed to "${newName}"`);
+  renderLibrary();
 }
 async function deleteList(name) {
   const ok = await showConfirm(`Delete "${name}"?`, `Papers won't be removed from the database.`, 'Delete', true);
@@ -1689,7 +1704,7 @@ function updateInterestField(name, field, value) {
 /* ===== GENERIC MODAL (prompt / confirm) ===== */
 let _genericResolve = null;
 
-function _openGeneric({ title, sub, inputPlaceholder, showInput, submitLabel, cancelLabel, danger }) {
+function _openGeneric({ title, sub, inputPlaceholder, defaultValue, showInput, submitLabel, cancelLabel, danger }) {
   return new Promise(resolve => {
     _genericResolve = resolve;
     document.getElementById('genericTitle').textContent = title;
@@ -1700,7 +1715,7 @@ function _openGeneric({ title, sub, inputPlaceholder, showInput, submitLabel, ca
     const input = document.getElementById('genericInput');
     wrap.style.display = showInput ? '' : 'none';
     if (showInput) {
-      input.value = '';
+      input.value = defaultValue || '';
       input.placeholder = inputPlaceholder || '';
       input.type = 'password';
       document.getElementById('genericVisIcon').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
@@ -1752,8 +1767,8 @@ function toggleGenericVis() {
   }
 }
 
-function showPrompt(title, sub, placeholder) {
-  return _openGeneric({ title, sub, inputPlaceholder: placeholder, showInput: true, submitLabel: 'OK' });
+function showPrompt(title, sub, placeholder, defaultValue) {
+  return _openGeneric({ title, sub, inputPlaceholder: placeholder, defaultValue, showInput: true, submitLabel: 'OK' });
 }
 function showConfirm(title, sub, confirmLabel = 'Confirm', danger = false) {
   return _openGeneric({ title, sub, showInput: false, submitLabel: confirmLabel, cancelLabel: 'Cancel', danger });
@@ -1936,7 +1951,7 @@ function renderPaperDetail(p) {
   fixed += `<div class="paper-detail-meta">`;
   fixed += `<span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>`;
   if (p.venue) fixed += `<span class="badge badge-venue" style="max-width:none">${esc(p.venue)}</span>`;
-  if (p.source_mode) fixed += `<span class="badge badge-source">${esc(p.source_mode)}</span>`;
+  if (p.source_mode) { const sm = p.source_mode.replace('web_survey','Web Survey').replace(/^email/,'Email').replace(/,Email/,', Email'); fixed += `<span class="badge badge-source">${esc(sm)}</span>`; }
   if (paperDate(p)) fixed += `<span class="dot"></span><span style="font-size:13px;color:var(--text-muted)">${paperDate(p)}</span>`;
   if (p.date_found) fixed += `<span class="dot"></span><span style="font-size:12px;color:var(--text-muted)">Added ${formatDate(p.date_found)}</span>`;
   fixed += `</div>`;
@@ -1967,10 +1982,10 @@ function renderPaperDetail(p) {
   let relatedHTML = '';
   for (const group of paperGroups) {
     const gNorm = norm(group);
-    const related = allPapers.filter(pp => paperKey(pp) !== k && (pp.theme_groups||'').split('|').map(norm).some(g => g === gNorm));
+    const related = allPapers.filter(pp => { const pk = paperKey(pp); return pk !== k && !readSet.has(pk) && (pp.theme_groups||'').split('|').map(norm).some(g => g === gNorm); });
     if (related.length) {
       sortPapers(related);
-      const shown = related.slice(0, 5);
+      const shown = related.slice(0, 6);
       relatedHTML += `<div class="paper-detail-group-label">${esc(group)}</div>
         <div class="paper-related-grid">${shown.map(topCardHTML).join('')}</div>`;
     }
