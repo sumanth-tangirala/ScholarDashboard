@@ -406,7 +406,19 @@ a { color: inherit; text-decoration: none; }
 .paper-detail-section { margin-bottom: 28px; }
 .paper-detail-section-title { font-size: 17px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
 .paper-detail-section-body { font-size: 15px; color: var(--text-secondary); line-height: 1.7; }
-.paper-detail-notes { font-size: 14px; color: var(--text-muted); line-height: 1.6; font-style: italic; }
+.notes-modal { position: fixed; bottom: 24px; right: 24px; width: 360px; height: 320px; min-width: 240px; min-height: 180px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); z-index: 9998; display: none; flex-direction: column; overflow: hidden; }
+.notes-resize-handle { position: absolute; bottom: 0; left: 0; width: 18px; height: 18px; cursor: nesw-resize; z-index: 2; }
+.notes-resize-handle::after { content: ''; position: absolute; bottom: 4px; left: 4px; width: 8px; height: 8px; border-left: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted); opacity: 0.4; }
+.notes-modal.open { display: flex; }
+.notes-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase; user-select: none; cursor: move; }
+.notes-modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 0 4px; transition: color 0.15s; }
+.notes-modal-close:hover { color: var(--text); }
+.notes-modal textarea { flex: 1; width: 100%; background: transparent; border: none; color: var(--text-secondary); font-size: 14px; line-height: 1.6; padding: 12px 14px; resize: none; font-family: inherit; min-height: 160px; }
+.notes-modal textarea:focus { outline: none; }
+.notes-modal textarea::placeholder { color: var(--text-muted); font-style: italic; }
+.btn-icon.has-notes { color: var(--accent); }
+.btn-triage-info { color: var(--text-muted); }
+.triage-popup { position: absolute; top: 100%; right: 0; margin-top: 6px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; font-style: italic; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; max-width: 320px; white-space: normal; animation: dropdown-in 0.15s ease forwards; }
 .paper-detail-related { border-top: 1px solid var(--border); padding-top: 24px; }
 .paper-detail-related .paper-detail-section-title { margin-bottom: 18px; }
 .paper-detail-group-label { font-size: 17px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 14px; margin-top: 16px; }
@@ -582,6 +594,18 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="overlay-body" id="overlayBody"></div>
   </div>
+</div>
+
+<div class="notes-modal" id="notesModal">
+  <div class="notes-modal-header" id="notesModalDrag">
+    <span>Notes</span>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <button class="notes-modal-close" onclick="deleteNote()" title="Delete note" style="font-size:14px;">&#128465;</button>
+      <button class="notes-modal-close" onclick="closeNotesModal()" title="Close">&times;</button>
+    </div>
+  </div>
+  <textarea id="notesModalArea" placeholder="Add your notes..." oninput="debouncedSaveNote()"></textarea>
+  <div class="notes-resize-handle" id="notesResizeHandle"></div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -895,7 +919,7 @@ function renderGlobalSearch(q) {
 
   // Search papers
   const matchedPapers = allPapers.filter(p => {
-    const s = [p.title,p.authors,p.headline,p.summary,p.abstract,p.venue].filter(Boolean).join(' ').toLowerCase();
+    const s = [p.title,p.authors,p.headline,p.summary,p.abstract,p.venue,p.user_notes].filter(Boolean).join(' ').toLowerCase();
     return matchTokens(s);
   });
   sortPapers(matchedPapers);
@@ -1208,6 +1232,7 @@ function createListFromDD(input, key) {
   listEl.innerHTML = buildDDItems(key);
   toast(`Added to "${name}"`);
   refresh();
+  updateListIcon(key);
 }
 function toggleListItem(listName, key) {
   const arr = libraryLists[listName];
@@ -1218,6 +1243,13 @@ function toggleListItem(listName, key) {
     _activeSaveDD.el.querySelector('.save-dd-list').innerHTML = buildDDItems(key);
   }
   refresh();
+  updateListIcon(key);
+}
+function updateListIcon(key) {
+  if (!_paperViewActive) return;
+  const inAny = paperInAnyList(key);
+  const btn = document.querySelector('#paperDetail .save-anchor .btn-icon');
+  if (btn) { btn.style.color = inAny ? 'var(--list)' : ''; btn.classList.toggle('done', inAny); }
 }
 function closeSaveDD() {
   if (_activeSaveDD) { _activeSaveDD.el.remove(); _activeSaveDD = null; }
@@ -1310,14 +1342,23 @@ function renderLibrary() {
   const starred = allPapers.filter(p => starSet.has(paperKey(p)));
   const listNames = Object.keys(libraryLists);
 
+  const noted = allPapers.filter(p => p.user_notes && p.user_notes.trim());
+  sortPapers(noted);
+
   let html = '';
-  if (!starred.length && !listNames.length) {
+  if (!starred.length && !listNames.length && !noted.length) {
     html = '<div class="library-empty">No papers in your library yet. Star papers or add them to lists to see them here.</div>';
   } else {
     if (starred.length) {
       html += `<div class="library-section">
         <div class="library-section-header"><span class="star-icon">&#9733;</span> Starred (${starred.length})</div>
         <div class="topic-card"><div class="topic-body">${starred.map(topicItemHTML).join('')}</div></div>
+      </div>`;
+    }
+    if (noted.length) {
+      html += `<div class="library-section">
+        <div class="library-section-header"><span style="font-size:15px">&#128221;</span> Notes (${noted.length})</div>
+        <div class="topic-card"><div class="topic-body">${noted.map(topicItemHTML).join('')}</div></div>
       </div>`;
     }
     listNames.forEach((name, idx) => {
@@ -1866,7 +1907,7 @@ function renderPaperDetail(p) {
   const ir = readSet.has(k), isStar = starSet.has(k), inAny = paperInAnyList(k);
   const hasSummary = p.summary && p.summary.trim() && p.summary !== 'not specified';
   const hasAbstract = p.abstract && p.abstract.trim() && p.abstract !== 'not specified';
-  const hasNotes = p.notes && p.notes.trim() && p.notes !== 'not specified';
+  const hasNotes = p.user_notes && p.user_notes.trim();
   const hasAuthors = p.authors && p.authors !== 'not specified';
 
   const showBack = history.length > 1;
@@ -1879,6 +1920,9 @@ function renderPaperDetail(p) {
   fixed += `<button class="btn-icon ${isStar?'starred':''}" onclick="toggleStar('${escAttr(k)}',this);renderPaperDetail(allPapers.find(pp=>paperKey(pp)==='${escAttr(k)}'))" title="${isStar?'Unstar':'Star'}" style="font-size:18px">&#9733;</button>`;
   fixed += `<button class="btn-icon is-read-btn ${ir?'done':''}" onclick="toggleRead('${escAttr(k)}',this);renderPaperDetail(allPapers.find(pp=>paperKey(pp)==='${escAttr(k)}'))" title="${ir?'Mark unread':'Mark as read'}" style="font-size:16px">&#10003;</button>`;
   fixed += `<span class="save-anchor"><button class="btn-icon ${inAny?'done':''}" onclick="event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--list)':''}font-size:16px">&#9776;</button></span>`;
+  fixed += `<button class="btn-icon ${hasNotes?'has-notes':''}" onclick="toggleNotesModal('${escAttr(k)}')" title="Notes" style="font-size:16px">&#9998;</button>`;
+  const triageNote = p.notes && p.notes.trim();
+  if (triageNote) fixed += `<button class="btn-icon btn-triage-info" onclick="event.stopPropagation();toggleTriagePopup(this,'${escAttr(k)}')" title="Triage info" style="font-size:15px;font-weight:700;font-style:italic;font-family:Georgia,serif;">i</button>`;
   fixed += `</div></div>`;
 
   fixed += `<div class="paper-detail-title">${esc(p.title)}</div>`;
@@ -1919,14 +1963,6 @@ function renderPaperDetail(p) {
     scroll += `<div class="paper-detail-section">
       <div class="paper-detail-section-title">Abstract</div>
       <div class="paper-detail-section-body">${esc(p.abstract)}</div>
-    </div>`;
-  }
-
-  // Notes
-  if (hasNotes) {
-    scroll += `<div class="paper-detail-section">
-      <div class="paper-detail-section-title">Notes</div>
-      <div class="paper-detail-notes">${esc(p.notes)}</div>
     </div>`;
   }
 
@@ -1974,6 +2010,131 @@ function addGroupToPaper(key, groupName) {
   _stateDirty = true; showSaveBar(); refresh();
   renderPaperDetail(p);
 }
+
+function toggleTriagePopup(btn, key) {
+  const existing = btn.querySelector('.triage-popup');
+  if (existing) { existing.remove(); return; }
+  document.querySelectorAll('.triage-popup').forEach(p => p.remove());
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  if (!p || !p.notes || !p.notes.trim()) return;
+  btn.style.position = 'relative';
+  const popup = document.createElement('div');
+  popup.className = 'triage-popup';
+  popup.textContent = p.notes;
+  btn.appendChild(popup);
+  const close = (e) => { if (!btn.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); } };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function sanitizeNote(s) { return s.replace(/\|/g, '/').replace(/,/g, ';').replace(/\r\n|\r|\n/g, ' // ').replace(/"/g, "'"); }
+function desanitizeNote(s) { return s.replace(/ \/\/ /g, '\n'); }
+
+function saveNote(key, value) {
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  if (!p) return;
+  const sanitized = sanitizeNote(value.trim());
+  if ((p.user_notes||'') === sanitized) return;
+  p.user_notes = sanitized;
+  _stateDirty = true; showSaveBar();
+}
+
+function deleteNote() {
+  if (!_notesKey) return;
+  const p = allPapers.find(pp => paperKey(pp) === _notesKey);
+  if (!p) return;
+  p.user_notes = '';
+  document.getElementById('notesModalArea').value = '';
+  _stateDirty = true; showSaveBar();
+  renderPaperDetail(p);
+  closeNotesModal();
+  toast('Note deleted');
+}
+
+let _notesSaveTimer = null;
+function debouncedSaveNote() {
+  clearTimeout(_notesSaveTimer);
+  _notesSaveTimer = setTimeout(() => {
+    if (!_notesKey) return;
+    saveNote(_notesKey, document.getElementById('notesModalArea').value);
+    const p = allPapers.find(pp => paperKey(pp) === _notesKey);
+    if (p) renderPaperDetail(p);
+  }, 300);
+}
+
+let _notesKey = null;
+function toggleNotesModal(key) {
+  const modal = document.getElementById('notesModal');
+  if (_notesKey === key && modal.classList.contains('open')) { closeNotesModal(); return; }
+  _notesKey = key;
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  const area = document.getElementById('notesModalArea');
+  area.value = desanitizeNote(p?.user_notes || '');
+  modal.classList.add('open');
+  area.focus();
+}
+function closeNotesModal() {
+  const modal = document.getElementById('notesModal');
+  if (!modal.classList.contains('open')) return;
+  const area = document.getElementById('notesModalArea');
+  if (_notesKey) {
+    saveNote(_notesKey, area.value);
+    const p = allPapers.find(pp => paperKey(pp) === _notesKey);
+    if (p) renderPaperDetail(p);
+  }
+  modal.classList.remove('open');
+  _notesKey = null;
+}
+
+/* Draggable + resizable notes modal */
+(function() {
+  let mode = null, ox = 0, oy = 0, startW = 0, startH = 0, startLeft = 0, startTop = 0;
+  function toLeftTop(modal) {
+    if (modal.style.right !== 'auto') {
+      const rect = modal.getBoundingClientRect();
+      modal.style.left = rect.left + 'px';
+      modal.style.top = rect.top + 'px';
+      modal.style.right = 'auto';
+      modal.style.bottom = 'auto';
+    }
+  }
+  document.addEventListener('mousedown', e => {
+    const modal = document.getElementById('notesModal');
+    if (!modal.classList.contains('open')) return;
+    if (e.target.closest('#notesResizeHandle')) {
+      mode = 'resize';
+      toLeftTop(modal);
+      const rect = modal.getBoundingClientRect();
+      ox = e.clientX; oy = e.clientY;
+      startW = rect.width; startH = rect.height; startLeft = rect.left;
+      modal.style.transition = 'none';
+      e.preventDefault();
+    } else if (e.target.closest('#notesModalDrag')) {
+      mode = 'drag';
+      toLeftTop(modal);
+      const rect = modal.getBoundingClientRect();
+      ox = e.clientX - rect.left; oy = e.clientY - rect.top;
+      modal.style.transition = 'none';
+      e.preventDefault();
+    }
+  });
+  document.addEventListener('mousemove', e => {
+    if (!mode) return;
+    const modal = document.getElementById('notesModal');
+    if (mode === 'drag') {
+      modal.style.left = (e.clientX - ox) + 'px';
+      modal.style.top = (e.clientY - oy) + 'px';
+    } else if (mode === 'resize') {
+      const dx = ox - e.clientX;
+      const dy = e.clientY - oy;
+      const newW = Math.max(240, startW + dx);
+      const newH = Math.max(180, startH + dy);
+      modal.style.width = newW + 'px';
+      modal.style.height = newH + 'px';
+      modal.style.left = (startLeft - (newW - startW)) + 'px';
+    }
+  });
+  document.addEventListener('mouseup', () => { mode = null; });
+})();
 
 function toggleGroupAddDD(btn, key) {
   const dd = btn.nextElementSibling;

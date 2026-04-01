@@ -180,7 +180,7 @@ Maintain a CSV file (`papers_database.csv`) with these columns:
 | `headline` | One-line attention-grabbing takeaway (generated, ~10-15 words). Shown as the main display text on the website. |
 | `summary` | 3-4 sentence generated summary of the paper's contribution, approach, and key result. Shown on click in the website UI. |
 | `abstract` | **The actual abstract from the paper** — fetch from arXiv, conference page, or publisher. Typically 100-300 words. Do NOT generate or paraphrase this; copy the real abstract verbatim. |
-| `notes` | Any additional notes |
+| `notes` | **Required triaging note** — always populate this field. Explain why the paper was selected and how it relates to your research interests. Use this format: for email papers, `"Alert: {researcher group(s)}. {Tier} — {one-line reason}"` (e.g., `"Alert: Lindemann/Tomlin. Core — data-driven verification + conformal prediction"`); for web survey papers, `"{Tier} — {one-line reason}"` (e.g., `"High — flow matching applied to visuomotor policy learning"`). Tier values: **Core** (definitely), **High** (probably), **Moderate** (probably/mildly boundary), **Low** (mildly). Never leave blank. |
 | `is_read` | `"true"` or `"false"` — set by the user in the dashboard. **Never overwrite** when appending new papers; leave as `"false"` for new rows. |
 | `is_starred` | `"true"` or `"false"` — set by the user in the dashboard. **Never overwrite** when appending new papers; leave as `"false"` for new rows. |
 | `user_lists` | Pipe-separated (`\|`) list names the user has saved this paper to (e.g. `"reading-list\|important"`). **Never overwrite** when appending new papers; leave empty for new rows. |
