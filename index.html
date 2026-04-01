@@ -513,11 +513,11 @@ a { color: inherit; text-decoration: none; }
 <!-- INTERESTS TAB -->
 <div class="tab-section" id="sec-interests">
   <div class="interests-header">
-    <div class="briefing"><h2>Research Interests &amp; Groups</h2></div>
+    <div class="briefing"><h2>Research Interests &amp; Topics</h2></div>
     <div class="ig-toggle-wrap">
       <div class="ig-toggle">
         <button class="ig-toggle-btn active" data-igtab="interests" onclick="switchIGTab('interests')">Interests <span class="ig-badge" id="igBadgeInterests" style="display:none">0</span></button>
-        <button class="ig-toggle-btn" data-igtab="groups" onclick="switchIGTab('groups')">Groups <span class="ig-badge" id="igBadgeGroups" style="display:none">0</span></button>
+        <button class="ig-toggle-btn" data-igtab="groups" onclick="switchIGTab('groups')">Topics <span class="ig-badge" id="igBadgeGroups" style="display:none">0</span></button>
       </div>
     </div>
     <div class="interest-filter-chips" id="interestChips">
@@ -1480,12 +1480,12 @@ function renderInterests() {
 function renderGroupsTab(main) {
   let groups = allGroups;
   if (currentIStatus !== 'all') groups = groups.filter(g => g.status === currentIStatus);
-  if (!groups.length) { main.innerHTML = '<div class="empty-state">No groups match.</div>'; return; }
+  if (!groups.length) { main.innerHTML = '<div class="empty-state">No topics match.</div>'; return; }
   const so = {suggested:0,confirmed:1,rejected:2};
   groups = [...groups].sort((a,b) => (so[a.status]||9) - (so[b.status]||9) || (parseInt(a.display_order)||999) - (parseInt(b.display_order)||999));
   const sugN = allGroups.filter(g=>g.status==='suggested').length;
   let html = '';
-  if (sugN > 0 && currentIStatus === 'all') html += `<div style="padding:12px 20px;margin-bottom:16px;background:var(--purple-bg);border:1px solid var(--purple);border-radius:8px;font-size:13px;color:var(--purple);">${sugN} suggested group${sugN>1?'s':''} from recent papers</div>`;
+  if (sugN > 0 && currentIStatus === 'all') html += `<div style="padding:12px 20px;margin-bottom:16px;background:var(--purple-bg);border:1px solid var(--purple);border-radius:8px;font-size:13px;color:var(--purple);">${sugN} suggested topic${sugN>1?'s':''} from recent papers</div>`;
   html += '<div class="interest-group"><div class="interest-group-inner" style="padding:10px 0">';
   html += groups.map(g => groupCardHTML(g, true)).join('');
   html += '</div></div>';
@@ -1547,7 +1547,7 @@ function gDrop(e) {
   _groupsDirty = true;
   showSaveBar();
   renderInterests();
-  toast('Group order updated', () => {
+  toast('Topic order updated', () => {
     allGroups.forEach(g => { if (prevOrder[g.group_name] != null) g.display_order = prevOrder[g.group_name]; });
     buildGroupOrder();
     _groupsDirty = true;
@@ -1600,7 +1600,7 @@ function updateG(name, status) {
   renderPapers(allPapers);
   showSaveBar();
   _groupsDirty = true;
-  toast(`Group "${name}" ${status === 'confirmed' ? 'approved — papers now visible' : 'dismissed'}`);
+  toast(`Topic "${name}" ${status === 'confirmed' ? 'approved — papers now visible' : 'dismissed'}`);
 }
 
 /* ===== INTEREST INLINE DROPDOWNS ===== */
