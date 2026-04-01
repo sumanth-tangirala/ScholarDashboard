@@ -56,7 +56,7 @@ The website dynamically reads `papers_database.csv` and `interests_database.csv`
 
 Two scripts manage the canonical database state on GitHub:
 
-- **`pull_from_github.sh`** — Fetches the latest `papers_database.csv` and `interests_database.csv` from GitHub and updates local files if the remote is newer. Uses HTTPS + `.github_token`. Run at the **start** of every task (Step 0) to avoid working with stale data. Exits non-zero on failure.
+- **`pull_from_github.sh`** — Fetches the latest `papers_database.csv`, `interests_database.csv`, and `groups_database.csv` from GitHub and updates local files if the remote is newer. Uses HTTPS + `.github_token`. Run at the **start** of every task (Step 0) to avoid working with stale data. Exits non-zero on failure.
 - **`sync_to_github.sh`** — Commits and pushes the updated CSVs (and `index.html`) to GitHub after a run completes. Run at the **end** of every task (Step 10). Requires `.github_token` file in the project directory.
 
 The token file (`.github_token`) is gitignored and must be present locally for both scripts to work.
@@ -147,7 +147,11 @@ Run targeted searches grouped by research interest:
 2. **Source** — Gather raw paper list (from emails or web sources above)
 3. **Deduplicate** — Remove papers already in the database or appearing multiple times. If a paper exists from a different source, update `source_mode` to reflect both sources.
 4. **Filter** — Score/rank by relevance using the confirmed interests from `interests_database.csv` (NOT from memory or hardcoded lists)
-5. **Group** — Cluster papers thematically (e.g., "Verification & Safety", "Diffusion Policies", etc.)
+5. **Group** — Assign `theme_groups` (pipe-separated) to each paper using the live canonical list from `groups_database.csv` (confirmed entries only, sorted by `display_order`). Default to 1–2 groups; add a third only when the paper makes a genuine, substantial contribution to a third cluster. Hard cap: 5.
+   - **If a paper fits an existing confirmed group**, use its exact `group_name` from `groups_database.csv`.
+   - **If a paper is genuinely novel and fits no existing group**, create a new row in `groups_database.csv` with `status="suggested"` and a descriptive `group_name`. Assign that group name to the paper. The user will review it in the Interests tab of the website (Approve to confirm, Dismiss to reject). Do NOT fall back to `Other` if the paper clearly represents a new research area — propose the new group instead.
+   - **Never invent group name variants** (e.g., "Safe RL", "Diffusion Policies", "Verification & Safety" are all wrong). Use exact `group_name` values from `groups_database.csv`.
+   - Current confirmed groups (as of last sync — always re-read from CSV): `Safety & Verification`, `Conformal Prediction`, `Diffusion & Flow Policies`, `VLA & Generalist Policies`, `Imitation Learning`, `Reinforcement Learning`, `Controller Composition`, `Formal Methods & STL`, `Active Learning`, `Planning & Control`.
 6. **Fetch metadata & abstract** — For each new paper, visit the paper page (arXiv, conference site, etc.) to extract the **exact title**, **full author list**, **publication date/year**, and **actual abstract** (verbatim, 100-300 words). Store the abstract in the `abstract` column. Do NOT generate or paraphrase the abstract — it must be the real text from the paper.
 7. **Generate headline & summary** — From the title + abstract, generate: (a) a concise ~10-15 word headline takeaway for the `headline` column, and (b) a 3-4 sentence summary of the contribution/approach/result for the `summary` column.
 8. **Discover new interests** — Identify recurring themes/methods in papers that don't match any existing interest in the database. Add as "suggested" entries to `interests_database.csv` (see Interest Discovery below).
@@ -172,7 +176,7 @@ Maintain a CSV file (`papers_database.csv`) with these columns:
 | `date_found` | Date this paper was added |
 | `source_mode` | "email", "web_survey", or "email,web_survey" |
 | `relevance_tier` | "definitely", "probably", or "mildly" (from research-interests.md) |
-| `theme_group` | Thematic cluster assigned during grouping |
+| `theme_groups` | Pipe-separated list of thematic clusters (e.g. `"Safety & Verification\|Conformal Prediction"`). Typically 1–2 groups; up to 5 max for genuinely cross-cutting papers. **Always use canonical group names** — see Step 5 in the Execution Workflow. |
 | `headline` | One-line attention-grabbing takeaway (generated, ~10-15 words). Shown as the main display text on the website. |
 | `summary` | 3-4 sentence generated summary of the paper's contribution, approach, and key result. Shown on click in the website UI. |
 | `abstract` | **The actual abstract from the paper** — fetch from arXiv, conference page, or publisher. Typically 100-300 words. Do NOT generate or paraphrase this; copy the real abstract verbatim. |
@@ -246,3 +250,37 @@ The `interests_database.csv` replaces all hardcoded interest lists. The workflow
 3. For each paper, check which confirmed interests it aligns with
 4. Assign the highest `relevance_mapping` from matching interests
 5. Papers matching no confirmed interest: classify as "mildly" if tangentially related, or skip if irrelevant
+
+---
+
+# Groups Database Schema
+
+Maintain a CSV file (`groups_database.csv`) with these columns:
+
+| Column | Description |
+|--------|-------------|
+| `group_name` | Display name of the group (e.g., "Safety & Verification"). Must match exactly the values used in `theme_groups`. |
+| `status` | "confirmed" (shown on website), "suggested" (pending user review), or "rejected" (dismissed) |
+| `description` | Short description of what papers belong in this group |
+| `display_order` | Integer controlling the order groups appear on the website (lower = earlier) |
+| `date_added` | Date this group was added |
+| `notes` | Additional notes, e.g. what papers triggered a suggested group |
+
+## Group Discovery Rules
+
+During each run (Mode 1 or Mode 2), after assigning `theme_groups` to papers:
+
+1. **Read `groups_database.csv`** at the start of Step 5 to get the current canonical confirmed list.
+2. **If a paper fits no existing confirmed group** AND represents a genuinely new research area, create a new row in `groups_database.csv` with `status="suggested"`. Assign the suggested `group_name` to the paper's `theme_groups`.
+3. **Skip rejected** — Never re-suggest a group that has `status="rejected"`.
+4. **Threshold** — Only suggest a new group if it is clearly distinct from all confirmed groups and meaningfully describes 1+ papers in the current run.
+5. **User review** — The website's Interests tab shows suggested groups with Approve/Dismiss buttons. Approved groups get `status="confirmed"` and appear in future runs. Dismissed groups get `status="rejected"`.
+
+## How Groups Drive Display
+
+Groups are purely a display layer — they are not used for filtering or ranking.
+
+1. Read confirmed groups from `groups_database.csv`, sorted by `display_order`
+2. For each paper, split `theme_groups` on `|` and fan into matching confirmed group cards
+3. Papers whose groups are all rejected/suggested simply don't appear in any group card (acceptable)
+4. The `Other` group catches papers that don't fit any specific group

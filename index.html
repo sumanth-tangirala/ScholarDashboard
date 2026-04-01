@@ -30,6 +30,7 @@
   --purple: #c58af9;
   --purple-bg: #c58af918;
   --star: #c9a356;
+  --list: #5b9bf5;
   --read-opacity: 0.45;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -47,19 +48,19 @@ a { color: inherit; text-decoration: none; }
 .overlay-body::-webkit-scrollbar,
 .save-dd-list::-webkit-scrollbar,
 .topic-body::-webkit-scrollbar,
-.interest-group-body::-webkit-scrollbar { width: 6px; }
+.interest-group-body::-webkit-scrollbar,
 .overlay-body::-webkit-scrollbar-track,
 .save-dd-list::-webkit-scrollbar-track,
 .topic-body::-webkit-scrollbar-track,
-.interest-group-body::-webkit-scrollbar-track { background: transparent; border-radius: 3px; }
+.interest-group-body::-webkit-scrollbar-track,
 .overlay-body::-webkit-scrollbar-thumb,
 .save-dd-list::-webkit-scrollbar-thumb,
 .topic-body::-webkit-scrollbar-thumb,
-.interest-group-body::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+.interest-group-body::-webkit-scrollbar-thumb,
 .overlay-body::-webkit-scrollbar-thumb:hover,
 .save-dd-list::-webkit-scrollbar-thumb:hover,
 .topic-body::-webkit-scrollbar-thumb:hover,
-.interest-group-body::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+.interest-group-body::-webkit-scrollbar-thumb:hover,
 
 /* [2] Loading skeleton */
 @keyframes shimmer {
@@ -134,8 +135,9 @@ a { color: inherit; text-decoration: none; }
 .p-detail-panel { font-size: 13px; color: var(--text-secondary); line-height: 1.55; max-height: 0; overflow: hidden; opacity: 0; margin-top: 0; transition: max-height 0.4s ease, opacity 0.25s ease, margin-top 0.3s ease; }
 .p-detail-panel.open { max-height: 500px; opacity: 1; margin-top: 10px; }
 .btn-abs.active { background: var(--accent); color: #202124; border-color: var(--accent); }
-.btn-link, .btn-abs { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; background: none; border: 1px solid rgba(251,177,60,0.45); color: var(--accent); font-size: 13px; line-height: 1.4; padding: 2px 9px; border-radius: 4px; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
-.btn-link:hover, .btn-abs:hover { background: var(--accent); color: #202124; border-color: var(--accent); }
+.btn-link, .btn-abs { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; background: none; border: 1px solid var(--border); color: rgb(216 217 221 / 82%); font-size: 13px; line-height: 1.4; padding: 2px 9px; border-radius: 4px; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.btn-abs:hover, .btn-abs.active:hover { background: none; color: var(--accent); border-color: var(--accent); }
+.btn-link:hover { color: #8ab4f8; border-color: #8ab4f8; }
 .btn-link svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .abs-popup { position: fixed; width: 601px; max-height: 476px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); z-index: 9999; font-size: 15px; color: var(--text); line-height: 1.7; animation: dropdown-in 0.15s ease forwards; display: flex; flex-direction: column; overflow: hidden; }
 .abs-popup-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 10px; flex-shrink: 0; }
@@ -210,7 +212,7 @@ a { color: inherit; text-decoration: none; }
 .overlay-body .topic-item { padding: 14px 24px; }
 
 /* [13] BADGES */
-.badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; transition: all 0.15s; }
+.badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; box-sizing: border-box; transition: all 0.15s; }
 .badge-definitely { background: var(--green-bg); color: var(--green); }
 .badge-probably { background: var(--yellow-bg); color: var(--yellow); }
 .badge-mildly { background: var(--gray-badge-bg); color: var(--gray-badge); }
@@ -223,9 +225,18 @@ a { color: inherit; text-decoration: none; }
 /* INTERESTS TAB */
 .tab-section { display: none; }
 .tab-section.active { display: block; }
+#sec-paper.active { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .interests-header { }
 .interests-header .briefing { max-width: 1200px; margin: 0 auto; padding: 24px 24px 0; }
 .interests-header .interest-filter-chips { max-width: 1200px; margin: 0 auto; padding: 16px 24px; justify-content: center; }
+.ig-toggle-wrap { max-width: 1200px; margin: 0 auto; padding: 12px 24px 0; text-align: center; }
+.ig-toggle { display: inline-flex; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; overflow: hidden; }
+.ig-toggle-btn { background: none; border: none; color: var(--text-muted); font-size: 13px; font-weight: 500; padding: 7px 18px; cursor: pointer; transition: background .15s, color .15s; position: relative; }
+.ig-toggle-btn.active { background: var(--accent); color: #202124; }
+.ig-toggle-btn:not(.active):hover { background: rgba(255,255,255,0.06); }
+.ig-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; font-size: 10px; font-weight: 700; line-height: 1; margin-left: 5px; }
+.ig-toggle-btn.active .ig-badge { background: rgba(0,0,0,0.18); color: #202124; }
+.ig-toggle-btn:not(.active) .ig-badge { background: var(--accent); color: #202124; }
 .interests-scroll { padding: 24px 0; }
 .interests-scroll > .interest-group,
 .interests-scroll > .empty-state,
@@ -243,6 +254,11 @@ a { color: inherit; text-decoration: none; }
 .interest-group.collapsed .interest-group-body { display: none; }
 .interest-group-count { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 2px 8px; border-radius: 10px; }
 .interest-card { padding: 12px 20px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: background 0.15s; }
+.interest-group-inner > .interest-card:first-child { border-top: none; }
+.group-drag-handle { cursor: grab; color: var(--text-muted); padding: 4px 2px; margin-right: 4px; display: flex; align-items: center; flex-shrink: 0; opacity: 0.5; transition: opacity 0.15s; }
+.group-drag-handle:hover { opacity: 1; }
+.interest-card.dragging { opacity: 0.4; background: var(--bg-surface); }
+.interest-card.drag-over { border-top: 2px solid var(--accent); }
 .interest-card:hover { background: var(--bg-hover); }
 .interest-info { flex: 1; }
 .interest-name { font-size: 14px; font-weight: 500; }
@@ -299,12 +315,15 @@ a { color: inherit; text-decoration: none; }
 .save-dd-item { padding: 7px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); transition: background 0.1s; }
 .save-dd-item:hover { background: var(--bg-hover); }
 .save-dd-item .dd-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; transition: all 0.15s; }
-.save-dd-item .dd-check.on { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.save-dd-item .dd-check.on { background: var(--list); border-color: var(--list); color: var(--bg); }
 .save-dd-empty { padding: 10px 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
 
 /* [7] TOAST — frosted glass + accent border */
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(0,0,0,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: var(--text); padding: 10px 20px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2); border-left: 3px solid var(--accent); box-shadow: 0 8px 32px rgba(0,0,0,0.55); transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); z-index: 300; pointer-events: none; }
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(0,0,0,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: var(--text); padding: 10px 20px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2); border-left: 3px solid var(--accent); box-shadow: 0 8px 32px rgba(0,0,0,0.55); transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); z-index: 300; pointer-events: none; display: flex; align-items: center; gap: 12px; }
+.toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast-msg { flex: 1; }
+.toast-undo { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.toast-undo:hover { text-decoration: underline; }
 
 /* LOADING / EMPTY */
 .loading { text-align: center; padding: 64px; color: var(--text-secondary); }
@@ -346,14 +365,64 @@ a { color: inherit; text-decoration: none; }
 .btn-modal-danger { flex: 1; padding: 10px; background: transparent; border: 1px solid #f28b82; border-radius: 8px; color: #f28b82; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
 .btn-modal-danger:hover { background: rgba(242,139,130,0.1); }
 
+/* PAPER DETAIL PAGE */
+.paper-detail { display: flex; flex-direction: column; height: 100%; }
+.paper-detail-fixed { max-width: 800px; width: 100%; margin: 0 auto; padding: 10px 24px 0; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+.paper-detail-scroll { flex: 1; overflow-y: overlay; }
+.paper-detail-scroll-inner { max-width: 800px; margin: 0 auto; padding: 0 24px 64px; }
+.paper-detail-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.paper-detail-back { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; cursor: pointer; background: none; border: none; padding: 6px 12px 6px 0; transition: color 0.2s; }
+.paper-detail-back:hover { color: var(--accent); }
+.paper-detail-back svg { width: 16px; height: 16px; fill: currentColor; }
+.paper-detail-headline { font-size: 20px; font-weight: 500; color: var(--accent); line-height: 1.4; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--border); padding-top: 24px; margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; }
+.paper-detail-title { font-size: 26px; font-weight: 600; line-height: 1.35; margin-bottom: 16px; }
+.paper-detail-authors { font-size: 15px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+.paper-detail-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.paper-detail-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; transition: gap 0.2s ease; }
+.paper-detail-tags:last-of-type { margin-bottom: 24px; }
+.paper-detail-tags-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 2px; }
+.badge-group { background: #1e1a2e; color: #9b8ec4; font-size: 11px; border: 1px solid #2e2845; }
+.badge-group-edit { display: inline-flex; align-items: center; gap: 3px; transition: padding 0.2s ease, background 0.2s ease; }
+.badge-group-edit:hover { background: #252040; }
+.badge-group-edit .group-remove { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; max-width: 0; opacity: 0; overflow: hidden; transition: max-width 0.2s ease, opacity 0.15s ease, margin 0.2s ease; margin-left: 0; }
+.badge-group-edit:hover .group-remove { max-width: 16px; opacity: 0.6; margin-left: 2px; }
+.badge-group-edit .group-remove:hover { opacity: 1; }
+.group-add-wrap { position: relative; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.paper-detail-tags:hover .group-add-wrap { opacity: 1; pointer-events: auto; }
+.group-add-btn { background: transparent; border: 1px dashed #2e2845; color: #9b8ec4; font-size: 11px; font-weight: 500; padding: 0 10px; line-height: 1; border-radius: 6px; cursor: pointer; opacity: 0.6; white-space: nowrap; box-sizing: border-box; transition: opacity 0.15s ease, border-style 0.15s ease; }
+.group-add-btn:hover { opacity: 1; border-style: solid; }
+.badge-group, .group-add-btn { height: 24px; }
+.group-add-dd { position: absolute; top: 100%; left: 0; margin-top: 4px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 4px 0; z-index: 100; min-width: 200px; max-height: 240px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.5); opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease; }
+.group-add-dd.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.group-add-dd .group-opt { padding: 6px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--text-secondary); transition: background 0.12s ease, color 0.12s ease; }
+.group-add-dd .group-opt:hover { background: var(--hover-bg); color: var(--text-primary); }
+.group-add-dd .group-opt.disabled { opacity: 0.35; pointer-events: none; }
+.badge-interest { background: #1a1a2e; color: #8b8bef; font-size: 11px; border: 1px solid #2a2a4a; }
+.paper-detail-actions { display: flex; align-items: center; gap: 8px; }
+.paper-detail-actions .btn-icon { font-size: 18px; padding: 8px; }
+.paper-detail-actions .btn-link { font-size: 14px; padding: 6px 14px; order: 1; margin-left: 4px; }
+.paper-detail-section { margin-bottom: 28px; }
+.paper-detail-section-title { font-size: 17px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+.paper-detail-section-body { font-size: 15px; color: var(--text-secondary); line-height: 1.7; }
+.paper-detail-notes { font-size: 14px; color: var(--text-muted); line-height: 1.6; font-style: italic; }
+.paper-detail-related { border-top: 1px solid var(--border); padding-top: 24px; }
+.paper-detail-related .paper-detail-section-title { margin-bottom: 18px; }
+.paper-detail-group-label { font-size: 17px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 14px; margin-top: 16px; }
+.paper-detail-group-label:first-of-type { margin-top: 0; }
+.paper-related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 16px; }
+.paper-related-grid:last-child { margin-bottom: 0; }
+
 /* SAVE BAR */
-.save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-surface); border-top: 1px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; gap: 12px; z-index: 250; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
-.save-bar.visible { transform: translateY(0); }
-.save-bar-msg { font-size: 13px; color: var(--text-secondary); flex: 1; }
-.save-bar-msg strong { color: var(--text); }
-.btn-save-csv { padding: 7px 18px; background: var(--accent); border: none; border-radius: 20px; color: #202124; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; }
-.btn-save-csv:hover { opacity: 0.88; }
-.btn-dismiss-bar { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.15s; }
+.save-bar { position: fixed; top: 74px; right: 20px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.12); padding: 10px 14px 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; z-index: 250; transform: translateY(-20px); opacity: 0; pointer-events: none; transition: transform 0.25s cubic-bezier(0.32,0.72,0,1), opacity 0.25s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border-radius: 10px; border-left: 3px solid rgba(255,255,255,0.35); max-width: 225px; }
+.save-bar-btns { display: flex; gap: 6px; width: 100%; }
+.save-bar.visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.save-bar-msg { font-size: 12px; color: var(--text-muted); white-space: nowrap; flex: 1; margin-bottom: 10px; }
+.save-bar-msg strong { color: var(--text); font-size: 13.5px; }
+.btn-save-csv { padding: 5px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; flex: 1; text-align: center; margin: 0 2px; }
+.btn-save-csv:hover { background: rgba(255,255,255,0.18); }
+.save-bar-btns .btn-save-csv:first-child { background: rgba(255,255,255,0.88); color: #202124; font-weight: 600; border-color: transparent; }
+.save-bar-btns .btn-save-csv:first-child:hover { background: #fff; }
+.btn-dismiss-bar { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0 2px; line-height: 1; transition: color 0.15s; }
 .btn-dismiss-bar:hover { color: var(--text); }
 </style>
 </head>
@@ -444,7 +513,13 @@ a { color: inherit; text-decoration: none; }
 <!-- INTERESTS TAB -->
 <div class="tab-section" id="sec-interests">
   <div class="interests-header">
-    <div class="briefing"><h2>Research Interests</h2></div>
+    <div class="briefing"><h2>Research Interests &amp; Groups</h2></div>
+    <div class="ig-toggle-wrap">
+      <div class="ig-toggle">
+        <button class="ig-toggle-btn active" data-igtab="interests" onclick="switchIGTab('interests')">Interests <span class="ig-badge" id="igBadgeInterests" style="display:none">0</span></button>
+        <button class="ig-toggle-btn" data-igtab="groups" onclick="switchIGTab('groups')">Groups <span class="ig-badge" id="igBadgeGroups" style="display:none">0</span></button>
+      </div>
+    </div>
     <div class="interest-filter-chips" id="interestChips">
       <button class="pill active" data-istatus="suggested" onclick="toggleIStatus('suggested')">Needs Review</button>
       <button class="pill" data-istatus="confirmed" onclick="toggleIStatus('confirmed')">Confirmed</button>
@@ -453,6 +528,11 @@ a { color: inherit; text-decoration: none; }
     </div>
   </div>
   <div class="interests-scroll" id="interestsMain"></div>
+</div>
+
+<!-- PAPER DETAIL PAGE -->
+<div class="tab-section" id="sec-paper">
+  <div class="paper-detail" id="paperDetail"></div>
 </div>
 
 </div><!-- /.main-scroll -->
@@ -506,9 +586,11 @@ a { color: inherit; text-decoration: none; }
 <!-- SAVE BAR -->
 <div class="save-bar" id="saveBar">
   <span class="save-bar-msg"><strong>Unsaved changes</strong></span>
-  <button class="btn-save-csv" onclick="pushToGitHub()" id="btnPushGH">Push to GitHub</button>
-  <button class="btn-save-csv" onclick="downloadChanges()" style="background:var(--bg-hover);color:var(--text);border:1px solid var(--border);">Download CSV</button>
   <button class="btn-dismiss-bar" onclick="hideSaveBar()" title="Dismiss">&times;</button>
+  <div class="save-bar-btns">
+    <button class="btn-save-csv" onclick="pushToGitHub()" id="btnPushGH">Push to GitHub</button>
+    <button class="btn-save-csv" onclick="downloadChanges()">Download CSV</button>
+  </div>
 </div>
 
 <script>
@@ -522,11 +604,7 @@ const GROUP_NORMALIZE = {
   'Flow Matching / RL': 'Diffusion/Flow Matching Policies',
   'Safe RL': 'Reinforcement Learning',
 };
-const GROUP_ORDER = [
-  'Verification & Safety','Conformal Prediction','Diffusion/Flow Matching Policies',
-  'Generalist Policies','Visuomotor Policies','Imitation Learning',
-  'Reinforcement Learning','Controller Composition','Active Learning','Other'
-];
+let GROUP_ORDER = []; // Populated dynamically from groups_database.csv
 const REL_ORDER = { definitely: 0, probably: 1, mildly: 2 };
 const MAX_TOPIC_ITEMS = 4;
 
@@ -627,13 +705,14 @@ function togglePasskeyVis() {
 }
 
 /* ===== STATE ===== */
-let allPapers = [], allInterests = [];
-let currentTab = 'all', currentRel = 'all', currentIStatus = 'suggested', hideRead = true;
+let allPapers = [], allInterests = [], allGroups = [];
+let currentTab = 'all', currentRel = 'all', currentIStatus = 'suggested', currentIGTab = 'interests', hideRead = true;
 let readSet = new Set();
 let starSet = new Set();
 let libraryLists = {};
 let _dataLoaded = false;
 let _interestsDirty = false;
+let _groupsDirty = false;
 let _stateDirty = false;
 
 /* Bootstrap state from papers CSV columns (called after allPapers is loaded) */
@@ -692,6 +771,23 @@ function loadInterests() {
     download: true, header: true, skipEmptyLines: true,
     complete: r => { allInterests = r.data.filter(i => i.interest_name && i.interest_name.trim()); updateInterestsBadge(); renderInterests(); }
   });
+}
+function loadGroups() {
+  Papa.parse('groups_database.csv', {
+    download: true, header: true, skipEmptyLines: true, delimiter: '|',
+    complete: r => {
+      allGroups = r.data.filter(g => g.group_name && g.group_name.trim());
+      buildGroupOrder();
+      updateInterestsBadge();
+      renderInterests();
+    }
+  });
+}
+function buildGroupOrder() {
+  GROUP_ORDER = allGroups
+    .filter(g => g.status === 'confirmed')
+    .sort((a,b) => parseInt(a.display_order||99) - parseInt(b.display_order||99))
+    .map(g => norm(g.group_name));
 }
 
 /* [2] Skeleton -> content reveal */
@@ -778,7 +874,9 @@ function showGlobalSearch(q, fromHash) {
   document.getElementById('sec-papers').classList.remove('active');
   document.getElementById('sec-library').classList.remove('active');
   document.getElementById('sec-interests').classList.remove('active');
+  document.getElementById('sec-paper').classList.remove('active');
   document.getElementById('sec-search').classList.add('active');
+  _paperViewActive = false;
   // Deactivate tab highlight
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   renderGlobalSearch(q.toLowerCase());
@@ -795,7 +893,7 @@ function renderGlobalSearch(q) {
 
   // Search papers
   const matchedPapers = allPapers.filter(p => {
-    const s = [p.title,p.authors,p.headline,p.summary,p.abstract,p.venue,p.theme_group,p.notes].filter(Boolean).join(' ').toLowerCase();
+    const s = [p.title,p.authors,p.headline,p.summary,p.abstract,p.venue,p.theme_groups,p.notes].filter(Boolean).join(' ').toLowerCase();
     return matchTokens(s);
   });
   sortPapers(matchedPapers);
@@ -822,12 +920,14 @@ function switchTab(tab, fromHash) {
     document.getElementById('sec-search').classList.remove('active');
   }
   currentTab = tab;
-  if (!fromHash) location.hash = '#' + tab;
+  if (!fromHash) location.hash = tab === 'interests' ? '#interests/' + currentIGTab : '#' + tab;
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   const paperTabs = ['all','email'];
   document.getElementById('sec-papers').classList.toggle('active', paperTabs.includes(tab));
   document.getElementById('sec-library').classList.toggle('active', tab === 'library');
   document.getElementById('sec-interests').classList.toggle('active', tab === 'interests');
+  document.getElementById('sec-paper').classList.remove('active');
+  _paperViewActive = false;
   if (paperTabs.includes(tab)) applyFilters();
   else if (tab === 'library') renderLibrary();
   else if (tab === 'interests') renderInterests();
@@ -881,7 +981,8 @@ function renderPapers(papers) {
   renderTopPapers(top.length >= 2 ? top : papers.slice(0,5));
 
   const grouped = {};
-  papers.forEach(p => { const g = norm(p.theme_group); if (!grouped[g]) grouped[g]=[]; grouped[g].push(p); });
+  const _confirmedGroups = new Set(allGroups.filter(g => g.status === 'confirmed').map(g => norm(g.group_name)));
+  papers.forEach(p => { (p.theme_groups||'').split('|').map(norm).filter(g => !_confirmedGroups.size || _confirmedGroups.has(g)).forEach(g => { if (g && (!_confirmedGroups.size || _confirmedGroups.has(g))) { if (!grouped[g]) grouped[g]=[]; grouped[g].push(p); } }); });
   Object.values(grouped).forEach(a => sortPapers(a));
   const sorted = Object.keys(grouped).sort((a,b) => {
     const ia=GROUP_ORDER.indexOf(a), ib=GROUP_ORDER.indexOf(b);
@@ -914,7 +1015,7 @@ function topCardHTML(p) {
   const hasActive = starSet.has(k) || ir || paperInAnyList(k);
   const hasSummary = p.summary && p.summary.trim() && p.summary !== 'not specified';
   const hasAbstract = p.abstract && p.abstract.trim() && p.abstract !== 'not specified';
-  return `<div class="top-card ${ir?'is-read':''}">
+  return `<div class="top-card ${ir?'is-read':''}" onclick="openPaper('${escAttr(k)}', event)">
     <div class="p-headline">${esc(p.headline||p.title)}</div>
     <div class="p-title">${esc(p.title)}</div>
     ${p.authors&&p.authors!=='not specified'?`<div class="p-authors">${esc(p.authors)}</div>`:''}
@@ -935,7 +1036,7 @@ function topicItemHTML(p) {
   const hasActive = starSet.has(k) || ir || paperInAnyList(k);
   const hasSummary = p.summary && p.summary.trim() && p.summary !== 'not specified';
   const hasAbstract = p.abstract && p.abstract.trim() && p.abstract !== 'not specified';
-  return `<div class="topic-item ${ir?'is-read':''}">
+  return `<div class="topic-item ${ir?'is-read':''}" onclick="openPaper('${escAttr(k)}', event)">
     <div class="t-headline">${esc(p.headline||p.title)}</div>
     <div class="p-title">${esc(p.title)}</div>
     ${p.authors&&p.authors!=='not specified'?`<div class="p-authors">${esc(p.authors)}</div>`:''}
@@ -963,7 +1064,7 @@ function readBtn(p) {
 function saveBtn(p) {
   const k = paperKey(p), inAny = paperInAnyList(k);
   return `<span class="save-anchor">
-    <button class="btn-icon ${inAny?'done':''}" onclick="event.preventDefault();event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--accent)':''}">&#9776;</button>
+    <button class="btn-icon ${inAny?'done':''}" onclick="event.preventDefault();event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--list)':''}">&#9776;</button>
   </span>`;
 }
 
@@ -1104,6 +1205,7 @@ function createListFromDD(input, key) {
   const listEl = input.nextElementSibling;
   listEl.innerHTML = buildDDItems(key);
   toast(`Added to "${name}"`);
+  refresh();
 }
 function toggleListItem(listName, key) {
   const arr = libraryLists[listName];
@@ -1113,6 +1215,7 @@ function toggleListItem(listName, key) {
   if (_activeSaveDD) {
     _activeSaveDD.el.querySelector('.save-dd-list').innerHTML = buildDDItems(key);
   }
+  refresh();
 }
 function closeSaveDD() {
   if (_activeSaveDD) { _activeSaveDD.el.remove(); _activeSaveDD = null; }
@@ -1147,15 +1250,21 @@ function refresh() {
 function updateLibraryBadge() { /* badge removed from Library tab */ }
 
 function updateInterestsBadge() {
-  const n = allInterests.filter(i => i.status === 'suggested').length;
+  const ni = allInterests.filter(i => i.status === 'suggested').length;
+  const ng = allGroups.filter(g => g.status === 'suggested').length;
+  const n = ni + ng;
   const badge = document.getElementById('interestsBadge');
   if (n > 0) { badge.textContent = n; badge.style.display = ''; }
   else { badge.style.display = 'none'; }
+  const bi = document.getElementById('igBadgeInterests');
+  if (bi) { if (ni > 0) { bi.textContent = ni; bi.style.display = ''; } else { bi.style.display = 'none'; } }
+  const bg = document.getElementById('igBadgeGroups');
+  if (bg) { if (ng > 0) { bg.textContent = ng; bg.style.display = ''; } else { bg.style.display = 'none'; } }
 }
 
 /* [1] GROUP OVERLAY — animated open/close */
 function openGroup(name) {
-  let papers = allPapers.filter(p => norm(p.theme_group) === name);
+  let papers = allPapers.filter(p => (p.theme_groups||'').split('|').map(norm).includes(name));
   if (currentTab === 'email') papers = papers.filter(p => (p.source_mode||'').includes('email'));
   if (currentRel !== 'all') papers = papers.filter(p => p.relevance_tier === currentRel);
   if (hideRead) papers = papers.filter(p => !readSet.has(paperKey(p)));
@@ -1311,6 +1420,17 @@ function toggleInterestGroup(headerEl, cat) {
     group.classList.add('collapsed');
   }
 }
+function switchIGTab(tab, fromHash) {
+  currentIGTab = tab;
+  document.querySelectorAll('.ig-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.igtab === tab));
+  if (!fromHash) location.hash = '#interests/' + tab;
+  const items = tab === 'interests' ? allInterests : allGroups;
+  if (currentIStatus !== 'all' && !items.some(x => x.status === currentIStatus)) {
+    currentIStatus = 'all';
+    document.querySelectorAll('#interestChips .pill').forEach(c => c.classList.toggle('active', c.dataset.istatus === 'all'));
+  }
+  renderInterests();
+}
 function toggleIStatus(s) {
   currentIStatus = s;
   document.querySelectorAll('#interestChips .pill').forEach(c => c.classList.toggle('active', c.dataset.istatus === s));
@@ -1318,19 +1438,26 @@ function toggleIStatus(s) {
 }
 let _interestsAutoSwitched = false;
 function renderInterests() {
-  if (!_interestsAutoSwitched && currentIStatus === 'suggested' && !allInterests.some(i => i.status === 'suggested')) {
-    _interestsAutoSwitched = true;
-    currentIStatus = 'all';
-    document.querySelectorAll('#interestChips .pill').forEach(c => c.classList.toggle('active', c.dataset.istatus === 'all'));
+  if (!_interestsAutoSwitched && currentIStatus === 'suggested') {
+    const items = currentIGTab === 'interests' ? allInterests : allGroups;
+    if (!items.some(x => x.status === 'suggested')) {
+      _interestsAutoSwitched = true;
+      currentIStatus = 'all';
+      document.querySelectorAll('#interestChips .pill').forEach(c => c.classList.toggle('active', c.dataset.istatus === 'all'));
+    }
   }
   const main = document.getElementById('interestsMain');
+  if (currentIGTab === 'groups') { renderGroupsTab(main); return; }
   let interests = allInterests;
   if (currentIStatus !== 'all') interests = interests.filter(i => i.status === currentIStatus);
   if (!interests.length) { main.innerHTML = '<div class="empty-state">No interests match.</div>'; return; }
   const grouped = {};
   interests.forEach(i => { const c = i.category==='method'?'Methods':'Application Areas'; if (!grouped[c]) grouped[c]=[]; grouped[c].push(i); });
   const so = {suggested:0,confirmed:1,rejected:2};
-  Object.values(grouped).forEach(a => a.sort((x,y)=>(so[x.status]||9)-(so[y.status]||9)));
+  const ro = {definitely:0,probably:1,mildly:2};
+  const po = {core:0,high:1,key:2,medium:3,'low-moderate':4};
+  const r = (map,k) => k in map ? map[k] : 9;
+  Object.values(grouped).forEach(a => a.sort((x,y)=> r(so,x.status)-r(so,y.status) || r(ro,x.relevance_mapping)-r(ro,y.relevance_mapping) || r(po,x.priority_level)-r(po,y.priority_level)));
   const sugN = allInterests.filter(i=>i.status==='suggested').length;
   let html = '';
   if (sugN > 0 && currentIStatus === 'all') html += `<div style="padding:12px 20px;margin-bottom:16px;background:var(--purple-bg);border:1px solid var(--purple);border-radius:8px;font-size:13px;color:var(--purple);">${sugN} suggested interest${sugN>1?'s':''} from recent papers</div>`;
@@ -1341,6 +1468,89 @@ function renderInterests() {
   });
   main.innerHTML = html;
 }
+function renderGroupsTab(main) {
+  let groups = allGroups;
+  if (currentIStatus !== 'all') groups = groups.filter(g => g.status === currentIStatus);
+  if (!groups.length) { main.innerHTML = '<div class="empty-state">No groups match.</div>'; return; }
+  const so = {suggested:0,confirmed:1,rejected:2};
+  groups = [...groups].sort((a,b) => (so[a.status]||9) - (so[b.status]||9) || (parseInt(a.display_order)||999) - (parseInt(b.display_order)||999));
+  const sugN = allGroups.filter(g=>g.status==='suggested').length;
+  let html = '';
+  if (sugN > 0 && currentIStatus === 'all') html += `<div style="padding:12px 20px;margin-bottom:16px;background:var(--purple-bg);border:1px solid var(--purple);border-radius:8px;font-size:13px;color:var(--purple);">${sugN} suggested group${sugN>1?'s':''} from recent papers</div>`;
+  html += '<div class="interest-group"><div class="interest-group-inner" style="padding:10px 0">';
+  html += groups.map(g => groupCardHTML(g, true)).join('');
+  html += '</div></div>';
+  main.innerHTML = html;
+}
+function groupCardHTML(g) {
+  const paperCount = allPapers.filter(p => (p.theme_groups||'').split('|').map(norm).includes(norm(g.group_name))).length;
+  const notes = g.notes ? `<div class="interest-detail" style="font-style:italic">${esc(g.notes)}</div>` : '';
+  const showStatus = currentIStatus === 'all' || g.status === 'suggested';
+  const statusBadge = showStatus && g.status ? `<span class="badge badge-${g.status}">${g.status.charAt(0).toUpperCase()+g.status.slice(1)}</span>` : '';
+  let actions = '';
+  if (g.status === 'suggested') actions = `<div class="interest-actions"><button class="btn-approve" onclick="event.stopPropagation();updateG('${escAttr(g.group_name)}','confirmed')">Approve</button><button class="btn-reject" onclick="event.stopPropagation();updateG('${escAttr(g.group_name)}','rejected')">Dismiss</button></div>`;
+  else if (g.status === 'confirmed') actions = `<div class="interest-actions"><button class="btn-reject" onclick="event.stopPropagation();updateG('${escAttr(g.group_name)}','rejected')">Remove</button></div>`;
+  else if (g.status === 'rejected') actions = `<div class="interest-actions"><button class="btn-approve" onclick="event.stopPropagation();updateG('${escAttr(g.group_name)}','confirmed')">Restore</button></div>`;
+  const handle = `<div class="group-drag-handle" title="Drag to reorder"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></div>`;
+  return `<div class="interest-card" draggable="true" data-group="${escAttr(g.group_name)}" ondragstart="gDragStart(event)" ondragover="gDragOver(event)" ondragenter="gDragEnter(event)" ondragleave="gDragLeave(event)" ondrop="gDrop(event)" ondragend="gDragEnd(event)">${handle}<div class="interest-info"><div class="interest-name">${esc(g.group_name)}</div><div class="interest-detail">${esc(g.description||'')}</div>${notes}<div class="interest-meta">${statusBadge}<span class="badge badge-venue">${paperCount} paper${paperCount!==1?'s':''}</span></div></div>${actions}</div>`;
+}
+/* ===== GROUP DRAG & DROP ===== */
+let _draggedGroup = null;
+let _dragCounters = new WeakMap();
+function gDragStart(e) {
+  _draggedGroup = e.currentTarget.dataset.group;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function gDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function gDragEnter(e) {
+  e.preventDefault();
+  const card = e.currentTarget;
+  const c = (_dragCounters.get(card) || 0) + 1;
+  _dragCounters.set(card, c);
+  if (card.dataset.group !== _draggedGroup) card.classList.add('drag-over');
+}
+function gDragLeave(e) {
+  const card = e.currentTarget;
+  const c = (_dragCounters.get(card) || 1) - 1;
+  _dragCounters.set(card, c);
+  if (c <= 0) { card.classList.remove('drag-over'); _dragCounters.delete(card); }
+}
+function gDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  _dragCounters.delete(e.currentTarget);
+  const target = e.currentTarget.dataset.group;
+  if (!_draggedGroup || _draggedGroup === target) return;
+  if (!isAuthed()) { requireAuth(() => {}); return; }
+  /* Reorder: move dragged group to target's position */
+  const so = {suggested:0,confirmed:1,rejected:2};
+  const ordered = [...allGroups].sort((a,b) => (so[a.status] ?? 9) - (so[b.status] ?? 9) || (parseInt(a.display_order)||999) - (parseInt(b.display_order)||999));
+  const fromIdx = ordered.findIndex(g => g.group_name === _draggedGroup);
+  const toIdx = ordered.findIndex(g => g.group_name === target);
+  if (fromIdx < 0 || toIdx < 0) return;
+  const prevOrder = {};
+  allGroups.forEach(g => { prevOrder[g.group_name] = g.display_order; });
+  const [moved] = ordered.splice(fromIdx, 1);
+  ordered.splice(toIdx, 0, moved);
+  ordered.forEach((g, i) => { g.display_order = String(i + 1); });
+  buildGroupOrder();
+  _groupsDirty = true;
+  showSaveBar();
+  renderInterests();
+  toast('Group order updated', () => {
+    allGroups.forEach(g => { if (prevOrder[g.group_name] != null) g.display_order = prevOrder[g.group_name]; });
+    buildGroupOrder();
+    _groupsDirty = true;
+    renderInterests();
+  });
+}
+function gDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  _draggedGroup = null;
+  document.querySelectorAll('.interest-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
 function interestCardHTML(i) {
   const relBadge = `<span class="badge badge-${i.relevance_mapping||'mildly'} badge-editable" onclick="event.stopPropagation();toggleInterestDropdown(event,'${escAttr(i.interest_name)}','relevance')">${relLabel(i.relevance_mapping||'mildly')}</span>`;
   const priBadge = `<span class="badge badge-priority badge-editable" onclick="event.stopPropagation();toggleInterestDropdown(event,'${escAttr(i.interest_name)}','priority')">${esc(i.priority_level||'medium')}</span>`;
@@ -1361,12 +1571,27 @@ function updateI(name, status) {
   if (!isAuthed()) { requireAuth(() => updateI(name, status)); return; }
   const i = allInterests.find(x=>x.interest_name===name);
   if (!i) return;
+  const prev = i.status;
   i.status = status; i.date_updated = new Date().toISOString().split('T')[0];
   updateInterestsBadge();
   renderInterests();
   showSaveBar();
   _interestsDirty = true;
-  toast(`"${name}" ${status==='confirmed'?'approved':'removed'}`);
+  toast(`"${name}" ${status==='confirmed'?'approved':'removed'}`, () => { updateI(name, prev); });
+}
+function updateG(name, status) {
+  if (!isAuthed()) { requireAuth(() => updateG(name, status)); return; }
+  const g = allGroups.find(x => x.group_name === name);
+  if (!g) return;
+  const prev = g.status;
+  g.status = status; g.date_updated = new Date().toISOString().split('T')[0];
+  if (status === 'confirmed') buildGroupOrder();
+  updateInterestsBadge();
+  renderInterests();
+  renderPapers(allPapers);
+  showSaveBar();
+  _groupsDirty = true;
+  toast(`Group "${name}" ${status === 'confirmed' ? 'approved — papers now visible' : 'dismissed'}`);
 }
 
 /* ===== INTEREST INLINE DROPDOWNS ===== */
@@ -1401,6 +1626,7 @@ function toggleInterestDropdown(e, name, field) {
 function updateInterestField(name, field, value) {
   if (!isAuthed()) { requireAuth(() => updateInterestField(name, field, value)); return; }
   const i = allInterests.find(x=>x.interest_name===name); if (!i) return;
+  const prev = field==='relevance' ? i.relevance_mapping : i.priority_level;
   if (field==='relevance') i.relevance_mapping = value;
   else i.priority_level = value;
   i.date_updated = new Date().toISOString().split('T')[0];
@@ -1408,7 +1634,7 @@ function updateInterestField(name, field, value) {
   showSaveBar();
   _interestsDirty = true;
   const label = field==='relevance' ? relLabel(value) : value;
-  toast(`"${name}" ${field==='relevance'?'relevance':'priority'} → ${label}`);
+  toast(`"${name}" ${field==='relevance'?'relevance':'priority'} → ${label}`, () => { updateInterestField(name, field, prev); });
 }
 
 /* ===== GENERIC MODAL (prompt / confirm) ===== */
@@ -1484,7 +1710,26 @@ function showConfirm(title, sub, confirmLabel = 'Confirm', danger = false) {
   return _openGeneric({ title, sub, showInput: false, submitLabel: confirmLabel, cancelLabel: 'Cancel', danger });
 }
 
-function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+let _toastTimer = null;
+let _toastUndo = null;
+function toast(msg, undoFn) {
+  const t = document.getElementById('toast');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastUndo = undoFn || null;
+  if (undoFn) {
+    t.innerHTML = `<span class="toast-msg">${msg}</span><button class="toast-undo" onclick="_doToastUndo()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Undo</button>`;
+  } else {
+    t.innerHTML = `<span class="toast-msg">${msg}</span>`;
+  }
+  t.classList.add('show');
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); _toastUndo = null; }, 4000);
+}
+function _doToastUndo() {
+  if (_toastUndo) { _toastUndo(); _toastUndo = null; }
+  const t = document.getElementById('toast');
+  t.classList.remove('show');
+  if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+}
 
 function showSaveBar() { document.getElementById('saveBar').classList.add('visible'); }
 function hideSaveBar() { document.getElementById('saveBar').classList.remove('visible'); }
@@ -1498,9 +1743,10 @@ function _triggerDownload(content, filename, type) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 function downloadChanges() {
-  if (_stateDirty || _interestsDirty) {
-    if (_stateDirty)    _triggerDownload(Papa.unparse(allPapers),    'papers_database.csv',    'text/csv');
+  if (_stateDirty || _interestsDirty || _groupsDirty) {
+    if (_stateDirty)     _triggerDownload(Papa.unparse(allPapers),    'papers_database.csv',    'text/csv');
     if (_interestsDirty) _triggerDownload(Papa.unparse(allInterests), 'interests_database.csv', 'text/csv');
+    if (_groupsDirty)    _triggerDownload(Papa.unparse(allGroups, {delimiter:'|'}),    'groups_database.csv',    'text/csv');
     hideSaveBar();
     toast('Downloaded — replace the file(s) in your folder to persist');
   }
@@ -1531,7 +1777,7 @@ async function _ghPushFile(headers, filename, content, message) {
 }
 
 async function pushToGitHub() {
-  if (!_stateDirty && !_interestsDirty) return;
+  if (!_stateDirty && !_interestsDirty && !_groupsDirty) return;
 
   let pat = localStorage.getItem('gh_pat');
   if (!pat) {
@@ -1554,8 +1800,10 @@ async function pushToGitHub() {
       await _ghPushFile(headers, 'papers_database.csv', Papa.unparse(allPapers), 'Update papers_database.csv from dashboard');
     if (_interestsDirty)
       await _ghPushFile(headers, 'interests_database.csv', Papa.unparse(allInterests), 'Update interests_database.csv from dashboard');
+    if (_groupsDirty)
+      await _ghPushFile(headers, 'groups_database.csv', Papa.unparse(allGroups, {delimiter:'|'}), 'Update groups_database.csv from dashboard');
 
-    _stateDirty = false; _interestsDirty = false;
+    _stateDirty = false; _interestsDirty = false; _groupsDirty = false;
     hideSaveBar();
     toast('Saved to GitHub ✓');
   } catch (e) {
@@ -1566,10 +1814,191 @@ async function pushToGitHub() {
   }
 }
 
+/* ===== PAPER DETAIL PAGE ===== */
+let _paperViewActive = false;
+function openPaper(key, event) {
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  if (!p) return;
+  const paperId = encodeURIComponent(p.id || key);
+  if (event && (event.metaKey || event.ctrlKey)) {
+    window.open(location.pathname + '#paper/' + paperId, '_blank');
+    return;
+  }
+  location.hash = '#paper/' + paperId;
+}
+
+function showPaperDetail(id) {
+  const p = allPapers.find(pp => (pp.id || paperKey(pp)) === id);
+  if (!p) { applyHash(); return; }
+  _paperViewActive = true;
+
+  // Hide all other sections
+  document.getElementById('sec-papers').classList.remove('active');
+  document.getElementById('sec-library').classList.remove('active');
+  document.getElementById('sec-interests').classList.remove('active');
+  document.getElementById('sec-search').classList.remove('active');
+  document.getElementById('sec-paper').classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('mainScroll').scrollTop = 0;
+
+  renderPaperDetail(p);
+}
+
+function renderPaperDetail(p) {
+  const k = paperKey(p);
+  const ir = readSet.has(k), isStar = starSet.has(k), inAny = paperInAnyList(k);
+  const hasSummary = p.summary && p.summary.trim() && p.summary !== 'not specified';
+  const hasAbstract = p.abstract && p.abstract.trim() && p.abstract !== 'not specified';
+  const hasNotes = p.notes && p.notes.trim() && p.notes !== 'not specified';
+  const hasAuthors = p.authors && p.authors !== 'not specified';
+
+  const showBack = history.length > 1;
+  let fixed = `<div class="paper-detail-toolbar">
+    ${showBack ? `<button class="paper-detail-back" onclick="paperBack()">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Back
+    </button>` : ''}
+    <div class="paper-detail-actions">`;
+  if (p.url) fixed += `<a class="btn-link" href="${esc(p.url)}" target="_blank" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open Paper</a>`;
+  fixed += `<button class="btn-icon ${isStar?'starred':''}" onclick="toggleStar('${escAttr(k)}',this);renderPaperDetail(allPapers.find(pp=>paperKey(pp)==='${escAttr(k)}'))" title="${isStar?'Unstar':'Star'}" style="font-size:18px">&#9733;</button>`;
+  fixed += `<button class="btn-icon is-read-btn ${ir?'done':''}" onclick="toggleRead('${escAttr(k)}',this);renderPaperDetail(allPapers.find(pp=>paperKey(pp)==='${escAttr(k)}'))" title="${ir?'Mark unread':'Mark as read'}" style="font-size:16px">&#10003;</button>`;
+  fixed += `<span class="save-anchor"><button class="btn-icon ${inAny?'done':''}" onclick="event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--list)':''}font-size:16px">&#9776;</button></span>`;
+  fixed += `</div></div>`;
+
+  fixed += `<div class="paper-detail-title">${esc(p.title)}</div>`;
+
+  if (hasAuthors) {
+    fixed += `<div class="paper-detail-authors">${esc(p.authors)}</div>`;
+  }
+
+  // Meta badges
+  // Theme groups
+  const detailGroups = (p.theme_groups||'').split('|').map(s => s.trim()).filter(Boolean);
+  const groupBadges = detailGroups.map(g => `<span class="badge badge-group badge-group-edit">${esc(g)}<span class="group-remove" onclick="event.stopPropagation();removeGroupFromPaper('${escAttr(k)}','${escAttr(g)}')"><svg width="10" height="10" viewBox="0 0 10 10"><line x1="2" y1="2" x2="8" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="2" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></span>`).join('');
+  const groupAddBtn = `<span class="group-add-wrap"><button class="group-add-btn" onclick="event.stopPropagation();toggleGroupAddDD(this,'${escAttr(k)}')">+ Add</button><div class="group-add-dd"></div></span>`;
+  fixed += `<div class="paper-detail-tags"><span class="paper-detail-tags-label">Topics</span>${groupBadges}${groupAddBtn}</div>`;
+  fixed += `<div class="paper-detail-meta">`;
+  fixed += `<span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>`;
+  if (p.venue) fixed += `<span class="badge badge-venue" style="max-width:none">${esc(p.venue)}</span>`;
+  if (p.source_mode) fixed += `<span class="badge badge-source">${esc(p.source_mode)}</span>`;
+  if (paperDate(p)) fixed += `<span class="dot"></span><span style="font-size:13px;color:var(--text-muted)">${paperDate(p)}</span>`;
+  if (p.date_found) fixed += `<span class="dot"></span><span style="font-size:12px;color:var(--text-muted)">Added ${formatDate(p.date_found)}</span>`;
+  fixed += `</div>`;
+
+  let scroll = '';
+
+  // Headline + Summary
+  if (p.headline) {
+    scroll += `<div class="paper-detail-headline">${esc(p.headline)}</div>`;
+  }
+  if (hasSummary) {
+    scroll += `<div class="paper-detail-section">
+      <div class="paper-detail-section-title">Summary</div>
+      <div class="paper-detail-section-body">${esc(p.summary)}</div>
+    </div>`;
+  }
+
+  // Abstract
+  if (hasAbstract) {
+    scroll += `<div class="paper-detail-section">
+      <div class="paper-detail-section-title">Abstract</div>
+      <div class="paper-detail-section-body">${esc(p.abstract)}</div>
+    </div>`;
+  }
+
+  // Notes
+  if (hasNotes) {
+    scroll += `<div class="paper-detail-section">
+      <div class="paper-detail-section-title">Notes</div>
+      <div class="paper-detail-notes">${esc(p.notes)}</div>
+    </div>`;
+  }
+
+  // Related works grouped by shared theme groups
+  const paperGroups = (p.theme_groups||'').split('|').map(s => s.trim()).filter(Boolean);
+  let relatedHTML = '';
+  for (const group of paperGroups) {
+    const gNorm = norm(group);
+    const related = allPapers.filter(pp => paperKey(pp) !== k && (pp.theme_groups||'').split('|').map(norm).some(g => g === gNorm));
+    if (related.length) {
+      sortPapers(related);
+      const shown = related.slice(0, 5);
+      relatedHTML += `<div class="paper-detail-group-label">${esc(group)}</div>
+        <div class="paper-related-grid">${shown.map(topCardHTML).join('')}</div>`;
+    }
+  }
+  if (relatedHTML) {
+    scroll += `<div class="paper-detail-section paper-detail-related">
+      <div class="paper-detail-section-title">Related Papers</div>
+      ${relatedHTML}
+    </div>`;
+  }
+
+  document.getElementById('paperDetail').innerHTML = `<div class="paper-detail-fixed">${fixed}</div><div class="paper-detail-scroll"><div class="paper-detail-scroll-inner">${scroll}</div></div>`;
+}
+
+function removeGroupFromPaper(key, groupName) {
+  if (!isAuthed()) { requireAuth(() => removeGroupFromPaper(key, groupName)); return; }
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  if (!p) return;
+  const groups = (p.theme_groups||'').split('|').map(s => s.trim()).filter(g => g && g !== groupName);
+  p.theme_groups = groups.join('|');
+  _stateDirty = true; showSaveBar(); refresh();
+  renderPaperDetail(p);
+}
+
+function addGroupToPaper(key, groupName) {
+  if (!isAuthed()) { requireAuth(() => addGroupToPaper(key, groupName)); return; }
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  if (!p) return;
+  const groups = (p.theme_groups||'').split('|').map(s => s.trim()).filter(Boolean);
+  if (groups.includes(groupName)) return;
+  groups.push(groupName);
+  p.theme_groups = groups.join('|');
+  _stateDirty = true; showSaveBar(); refresh();
+  renderPaperDetail(p);
+}
+
+function toggleGroupAddDD(btn, key) {
+  const dd = btn.nextElementSibling;
+  const wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.group-add-dd.open').forEach(d => d.classList.remove('open'));
+  if (wasOpen) return;
+  const p = allPapers.find(pp => paperKey(pp) === key);
+  const current = new Set((p?.theme_groups||'').split('|').map(s => s.trim()).filter(Boolean));
+  const confirmed = allGroups.filter(g => g.status === 'confirmed').sort((a,b) => (parseInt(a.display_order)||999) - (parseInt(b.display_order)||999));
+  dd.innerHTML = confirmed.map(g => {
+    const has = current.has(g.group_name);
+    return `<div class="group-opt ${has?'disabled':''}" onclick="event.stopPropagation();addGroupToPaper('${escAttr(key)}','${escAttr(g.group_name)}')">${esc(g.group_name)}</div>`;
+  }).join('');
+  dd.classList.add('open');
+  const close = (e) => { if (!dd.contains(e.target) && e.target !== btn) { dd.classList.remove('open'); document.removeEventListener('click', close); } };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function paperBack() {
+  _paperViewActive = false;
+  if (history.length > 1) {
+    history.back();
+  } else {
+    location.hash = '#all';
+  }
+}
+
 /* ===== HASH-BASED ROUTING ===== */
 const VALID_TABS = ['all', 'email', 'library', 'interests'];
 function applyHash() {
   const hash = location.hash.slice(1); // remove '#'
+
+  // Paper detail route
+  if (hash.startsWith('paper/')) {
+    const id = decodeURIComponent(hash.slice(6));
+    if (id) { showPaperDetail(id); return; }
+  }
+
+  // Clear paper view state if navigating away
+  _paperViewActive = false;
+  document.getElementById('sec-paper').classList.remove('active');
+
   if (hash.startsWith('search?q=')) {
     const q = decodeURIComponent(hash.slice(9));
     if (q) {
@@ -1578,12 +2007,18 @@ function applyHash() {
       return;
     }
   }
+  if (hash.startsWith('interests/')) {
+    const sub = hash.slice(10);
+    switchTab('interests', true);
+    if (sub === 'groups' || sub === 'interests') switchIGTab(sub, true);
+    return;
+  }
   const tab = VALID_TABS.includes(hash) ? hash : 'all';
   switchTab(tab, true);
 }
 window.addEventListener('hashchange', applyHash);
 
-document.addEventListener('DOMContentLoaded', () => { updateLoginBtn(); loadPapers(); loadInterests(); });
+document.addEventListener('DOMContentLoaded', () => { updateLoginBtn(); loadPapers(); loadInterests(); loadGroups(); });
 
 
 </script>
