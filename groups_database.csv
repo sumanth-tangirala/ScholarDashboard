@@ -1,11 +1,11 @@
 group_name|status|description|display_order|date_added|notes
 Safety & Verification|confirmed|Safety-critical control and formal/data-driven verification of robot systems and learned controllers|1|2026-03-31|Covers CBFs, HJ reachability, probabilistic verification, black-box safety evaluation, runtime monitoring
-Conformal Prediction|confirmed|Distribution-free uncertainty quantification and coverage guarantees for robotics and control|2|2026-03-31|Covers conformal prediction methods, risk control, coverage guarantees, covariate shift
-Diffusion & Flow Policies|confirmed|Diffusion models and flow matching for robot policy learning and control|3|2026-03-31|Covers diffusion policies, flow matching, score-based generative models for imitation and RL
-VLA & Generalist Policies|confirmed|Vision-language-action models and general-purpose multi-task robot policies|4|2026-03-31|Covers VLAs, foundation model policies, cross-embodiment learning, visuomotor policies
-Imitation Learning|confirmed|Learning robot policies from demonstrations|6|2026-03-31|Covers behavior cloning, interactive imitation, one-shot IL, human-robot learning
+Conformal Prediction|confirmed|Distribution-free uncertainty quantification and coverage guarantees for robotics and control|9|2026-03-31|Covers conformal prediction methods, risk control, coverage guarantees, covariate shift
+Diffusion & Flow Policies|confirmed|Diffusion models and flow matching for robot policy learning and control|2|2026-03-31|Covers diffusion policies, flow matching, score-based generative models for imitation and RL
+VLA & Generalist Policies|confirmed|Vision-language-action models and general-purpose multi-task robot policies|5|2026-03-31|Covers VLAs, foundation model policies, cross-embodiment learning, visuomotor policies
+Imitation Learning|confirmed|Learning robot policies from demonstrations|4|2026-03-31|Covers behavior cloning, interactive imitation, one-shot IL, human-robot learning
 Reinforcement Learning|confirmed|Policy learning through reward signals and environment interaction|7|2026-03-31|Covers model-free RL, safe RL, offline RL, curriculum learning, locomotion
-Controller Composition|confirmed|Composing modular skills and controllers for complex robot behavior|8|2026-03-31|Covers skill graphs, hierarchical control, modular policy composition, multi-skill transfer
-Formal Methods & STL|confirmed|Formal specification languages and synthesis methods for robot behavior|9|2026-03-31|Covers Signal Temporal Logic, STL semantics, formal synthesis, specification-based control
+Controller Composition|confirmed|Composing modular skills and controllers for complex robot behavior|6|2026-03-31|Covers skill graphs, hierarchical control, modular policy composition, multi-skill transfer
+Formal Methods & STL|confirmed|Formal specification languages and synthesis methods for robot behavior|8|2026-03-31|Covers Signal Temporal Logic, STL semantics, formal synthesis, specification-based control
 Active Learning|confirmed|Efficient data collection and query strategies for robot learning|10|2026-03-31|Covers active sampling, human-in-the-loop, failure discovery, Bayesian active learning
-Planning & Control|confirmed|Motion planning and model-based control for robot tasks|5|2026-03-31|Covers MPC, trajectory optimization, sampling-based planning, TAMP
+Planning & Control|confirmed|Motion planning and model-based control for robot tasks|3|2026-03-31|Covers MPC, trajectory optimization, sampling-based planning, TAMP
