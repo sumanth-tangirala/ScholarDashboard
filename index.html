@@ -418,7 +418,7 @@ a { color: inherit; text-decoration: none; }
 .notes-modal textarea::placeholder { color: var(--text-muted); font-style: italic; }
 .btn-icon.has-notes { color: var(--accent); }
 .btn-triage-info { color: var(--text-muted); }
-.triage-popup { position: absolute; top: 100%; right: 0; margin-top: 6px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; font-style: italic; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; max-width: 320px; white-space: normal; animation: dropdown-in 0.15s ease forwards; }
+.triage-popup { position: absolute; top: 100%; right: 0; margin-top: 6px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; font-style: normal; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; max-width: 320px; white-space: normal; animation: dropdown-in 0.15s ease forwards; }
 .paper-detail-related { border-top: 1px solid var(--border); padding-top: 24px; }
 .paper-detail-related .paper-detail-section-title { margin-bottom: 18px; }
 .paper-detail-group-label { font-size: 17px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 14px; margin-top: 16px; }
@@ -1922,7 +1922,7 @@ function renderPaperDetail(p) {
   fixed += `<span class="save-anchor"><button class="btn-icon ${inAny?'done':''}" onclick="event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--list)':''}font-size:16px">&#9776;</button></span>`;
   fixed += `<button class="btn-icon ${hasNotes?'has-notes':''}" onclick="toggleNotesModal('${escAttr(k)}')" title="Notes" style="font-size:16px">&#9998;</button>`;
   const triageNote = p.notes && p.notes.trim();
-  if (triageNote) fixed += `<button class="btn-icon btn-triage-info" onclick="event.stopPropagation();toggleTriagePopup(this,'${escAttr(k)}')" title="Triage info" style="font-size:15px;font-weight:700;font-style:italic;font-family:Georgia,serif;">i</button>`;
+  if (triageNote) fixed += `<button class="btn-icon btn-triage-info" onclick="event.stopPropagation();toggleTriagePopup(this,'${escAttr(k)}')" title="Triage info" style="font-size:15px;">&#9432;</button>`;
   fixed += `</div></div>`;
 
   fixed += `<div class="paper-detail-title">${esc(p.title)}</div>`;
@@ -2020,7 +2020,7 @@ function toggleTriagePopup(btn, key) {
   btn.style.position = 'relative';
   const popup = document.createElement('div');
   popup.className = 'triage-popup';
-  popup.textContent = p.notes;
+  popup.innerHTML = `<div style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Triage Info</div><div>${esc(p.notes)}</div>`;
   btn.appendChild(popup);
   const close = (e) => { if (!btn.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); } };
   setTimeout(() => document.addEventListener('click', close), 0);
