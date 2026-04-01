@@ -606,7 +606,7 @@ const GROUP_NORMALIZE = {
 };
 let GROUP_ORDER = []; // Populated dynamically from groups_database.csv
 const REL_ORDER = { definitely: 0, probably: 1, mildly: 2 };
-const MAX_TOPIC_ITEMS = 4;
+const MAX_TOPIC_ITEMS = 3;
 
 /* ===== AUTH ===== */
 const AUTH_HASH = 'b48acf8efc8ea1d7fee376c8e12a358dc56844f8123018fbe9ccfd87ffe3f4d5';
@@ -745,7 +745,7 @@ function flushStateToCSV() {
 function persistRead()   { flushStateToCSV(); _stateDirty = true; showSaveBar(); }
 function persistStars()  { flushStateToCSV(); _stateDirty = true; showSaveBar(); }
 function persistLists()  { flushStateToCSV(); _stateDirty = true; showSaveBar(); }
-function paperKey(p) { return p.id || (p.title || '').trim().substring(0, 80); }
+function paperKey(p) { return p.id; }
 function paperInAnyList(k) { return Object.values(libraryLists).some(arr => arr.includes(k)); }
 function listCount() { return Object.values(libraryLists).reduce((n, arr) => n + arr.length, 0); }
 
@@ -1263,7 +1263,10 @@ function updateInterestsBadge() {
 }
 
 /* [1] GROUP OVERLAY — animated open/close */
-function openGroup(name) {
+let _overlayGroupName = null;
+function openGroup(name, skipHash) {
+  if (_overlayGroupName === name && document.getElementById('overlay').classList.contains('open')) return;
+  _overlayGroupName = name;
   let papers = allPapers.filter(p => (p.theme_groups||'').split('|').map(norm).includes(name));
   if (currentTab === 'email') papers = papers.filter(p => (p.source_mode||'').includes('email'));
   if (currentRel !== 'all') papers = papers.filter(p => p.relevance_tier === currentRel);
@@ -1271,6 +1274,7 @@ function openGroup(name) {
   sortPapers(papers);
   document.getElementById('overlayTitle').textContent = name + ` (${papers.length})`;
   document.getElementById('overlayBody').innerHTML = papers.map(topicItemHTML).join('');
+  if (!skipHash) location.hash = '#group/' + encodeURIComponent(name);
   openOverlay();
 }
 function openOverlay() {
@@ -1279,9 +1283,10 @@ function openOverlay() {
   ol.classList.add('open');
   document.getElementById('mainScroll').style.overflow = 'hidden';
 }
-function closeOverlay() {
+function closeOverlay(skipHistory) {
   const ol = document.getElementById('overlay');
   if (!ol.classList.contains('open')) return;
+  _overlayGroupName = null;
   ol.classList.add('closing');
   const onEnd = () => {
     ol.classList.remove('open', 'closing');
@@ -1291,6 +1296,10 @@ function closeOverlay() {
   ol.addEventListener('transitionend', onEnd);
   /* fallback if transition doesn't fire */
   setTimeout(() => { ol.classList.remove('open', 'closing'); document.body.style.overflow = ''; }, 350);
+  /* Navigate back to the tab if the user closed the overlay directly (not via hash change) */
+  if (!skipHistory && location.hash.startsWith('#group/')) {
+    history.back();
+  }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeOverlay(); closeAbsPopup(); closeSaveDD(); closeLoginModal(); _resolveGeneric(null); } });
 
@@ -1816,10 +1825,8 @@ async function pushToGitHub() {
 
 /* ===== PAPER DETAIL PAGE ===== */
 let _paperViewActive = false;
-function openPaper(key, event) {
-  const p = allPapers.find(pp => paperKey(pp) === key);
-  if (!p) return;
-  const paperId = encodeURIComponent(p.id || key);
+function openPaper(id, event) {
+  const paperId = encodeURIComponent(id);
   if (event && (event.metaKey || event.ctrlKey)) {
     window.open(location.pathname + '#paper/' + paperId, '_blank');
     return;
@@ -1828,9 +1835,12 @@ function openPaper(key, event) {
 }
 
 function showPaperDetail(id) {
-  const p = allPapers.find(pp => (pp.id || paperKey(pp)) === id);
+  const p = allPapers.find(pp => pp.id === id);
   if (!p) { applyHash(); return; }
   _paperViewActive = true;
+
+  // Close group overlay if open (visually only, don't touch history)
+  closeOverlay(true);
 
   // Hide all other sections
   document.getElementById('sec-papers').classList.remove('active');
@@ -1998,6 +2008,15 @@ function applyHash() {
   // Clear paper view state if navigating away
   _paperViewActive = false;
   document.getElementById('sec-paper').classList.remove('active');
+
+  // Group overlay route
+  if (hash.startsWith('group/')) {
+    const groupName = decodeURIComponent(hash.slice(6));
+    if (groupName) { openGroup(groupName, true); return; }
+  }
+
+  // Close overlay if navigating away from a group route
+  closeOverlay(true);
 
   if (hash.startsWith('search?q=')) {
     const q = decodeURIComponent(hash.slice(9));
