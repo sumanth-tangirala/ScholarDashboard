@@ -32,10 +32,13 @@ TOKEN_FILE="$DIR/.github_token"
 if [ -f "$TOKEN_FILE" ]; then
   TOKEN="$(cat "$TOKEN_FILE" | tr -d '[:space:]')"
   HTTPS_REMOTE="https://${TOKEN}@github.com/sumanth-tangirala/ScholarDashboard.git"
+  echo "==> Pulling remote changes (rebase)..."
+  git pull --rebase "$HTTPS_REMOTE" main
   echo "==> Pushing via HTTPS (token auth)..."
   git push "$HTTPS_REMOTE" main
 else
   echo "==> No .github_token found, attempting SSH push..."
+  git pull --rebase origin main
   git push origin main
 fi
 
