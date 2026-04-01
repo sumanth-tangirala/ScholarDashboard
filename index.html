@@ -1000,8 +1000,8 @@ function renderPapers(papers) {
     return;
   }
   sortPapers(papers);
-  const top = papers.filter(p=>p.relevance_tier==='definitely').slice(0,5);
-  renderTopPapers(top.length >= 2 ? top : papers.slice(0,5));
+  const top = papers.filter(p=>p.relevance_tier==='definitely').slice(0,6);
+  renderTopPapers(top.length >= 2 ? top : papers.slice(0,6));
 
   const grouped = {};
   const _confirmedGroups = new Set(allGroups.filter(g => g.status === 'confirmed').map(g => norm(g.group_name)));
