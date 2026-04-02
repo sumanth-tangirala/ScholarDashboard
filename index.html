@@ -422,9 +422,26 @@ a { color: inherit; text-decoration: none; }
 .notes-modal textarea::placeholder { color: var(--text-muted); font-style: italic; }
 .btn-icon.has-notes { color: var(--accent); }
 .btn-triage-info { color: var(--text-muted); }
-.triage-popup { position: absolute; top: 100%; right: 0; margin-top: 6px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; font-style: normal; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; max-width: 320px; white-space: normal; animation: dropdown-in 0.15s ease forwards; }
 .paper-detail-related { border-top: 1px solid var(--border); padding-top: 24px; }
 .paper-detail-related .paper-detail-section-title { margin-bottom: 18px; }
+.triage-anchor { display: inline-flex; }
+.relevance-popup { position: fixed; z-index: 200; width: 360px; max-height: 70vh; overflow-y: auto; animation: dropdown-in 0.15s ease forwards; pointer-events: auto; }
+.relevance-breakdown { background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 16px 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.6); }
+.relevance-score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.relevance-score-val { font-size: 28px; font-weight: 700; line-height: 1; }
+.relevance-score-val.sc-3 { color: var(--green); }
+.relevance-score-val.sc-2 { color: var(--yellow); }
+.relevance-score-val.sc-1 { color: var(--text-muted); }
+.relevance-score-label { font-size: 13px; color: var(--text-muted); line-height: 1.3; }
+.relevance-formula { font-size: 12px; color: var(--text-muted); font-family: 'SF Mono', 'Fira Code', monospace; margin-bottom: 14px; padding: 8px 10px; background: rgba(0,0,0,0.25); border-radius: 6px; }
+.relevance-interests { margin-bottom: 14px; }
+.relevance-interests-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.relevance-interest-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 13px; }
+.relevance-interest-name { color: var(--text-secondary); }
+.relevance-interest-score { font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+.relevance-residual { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid var(--accent); }
+.relevance-residual.zero { border-left-color: var(--text-muted); opacity: 0.6; }
+.relevance-notes { font-size: 13px; color: var(--text-secondary); line-height: 1.6; font-style: italic; }
 .paper-detail-group-label { font-size: 17px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 14px; margin-top: 16px; }
 .paper-detail-group-label:first-of-type { margin-top: 0; }
 .paper-related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 16px; }
@@ -461,7 +478,7 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="nav-search">
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="text" id="searchInput" placeholder="Search papers and authors..." oninput="debouncedSearch()">
+      <input type="text" id="searchInput" placeholder="Search papers and authors..." oninput="debouncedSearch()" onpaste="setTimeout(debouncedSearch,0)">
     </div>
   </div>
 </nav>
@@ -634,6 +651,23 @@ const GROUP_NORMALIZE = {
 };
 let GROUP_ORDER = []; // Populated dynamically from groups_database.csv
 const REL_ORDER = { definitely: 0, probably: 1, mildly: 2 };
+const REL_SCORE = { definitely: 3, probably: 2, mildly: 1 };
+const SCORE_TO_REL = { 3: 'definitely', 2: 'probably', 1: 'mildly' };
+
+/* Dynamic relevance: computed from matched_interests × current interest settings + residual_score */
+function dynamicRelevance(p) {
+  const mi = (p.matched_interests || '').split('|').map(s => s.trim()).filter(Boolean);
+  if (!mi.length) return p.relevance_tier || 'mildly';
+  let maxScore = 0;
+  for (const name of mi) {
+    const i = allInterests.find(x => x.interest_name === name && x.status === 'confirmed');
+    if (i) maxScore = Math.max(maxScore, REL_SCORE[i.relevance_mapping] || 1);
+  }
+  if (maxScore === 0) return p.relevance_tier || 'mildly'; // none confirmed → fall back to static
+  const residual = parseFloat(p.residual_score) || 0;
+  const final = Math.max(1, Math.min(3, Math.round(maxScore + residual)));
+  return SCORE_TO_REL[final] || 'mildly';
+}
 const MAX_TOPIC_ITEMS = 3;
 
 /* ===== AUTH ===== */
@@ -867,10 +901,67 @@ function formatDate(d) {
   try { return new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); } catch(e) { return d; }
 }
 
+/* Build relevance breakdown inner HTML (used in hover popup) */
+function buildRelevanceBreakdown(p) {
+  const mi = (p.matched_interests || '').split('|').map(s => s.trim()).filter(Boolean);
+  const residual = parseInt(p.residual_score) || 0;
+  const rel = dynamicRelevance(p);
+  const finalScore = REL_SCORE[rel] || 1;
+
+  let html = '<div class="relevance-breakdown">';
+
+  // Score row
+  html += `<div class="relevance-score-row">
+    <span class="relevance-score-val sc-${finalScore}">${finalScore}</span>
+    <span class="relevance-score-label"><strong>${relLabel(rel)}</strong><br>${rel === 'definitely' ? 'Directly relevant to your research' : rel === 'probably' ? 'Related to your interests' : 'Tangentially connected'}</span>
+  </div>`;
+
+  // Matched interests with their scores
+  if (mi.length) {
+    let maxBase = 0;
+    const scores = [];
+    const rows = mi.map(name => {
+      const i = allInterests.find(x => x.interest_name === name);
+      const confirmed = i && i.status === 'confirmed';
+      const rm = confirmed ? (i.relevance_mapping || 'mildly') : 'mildly';
+      const sc = REL_SCORE[rm] || 1;
+      scores.push(sc);
+      if (confirmed && sc > maxBase) maxBase = sc;
+      const statusNote = !i ? ' (unknown)' : !confirmed ? ` (${i.status})` : '';
+      return `<div class="relevance-interest-row">
+        <span class="badge badge-${rm} relevance-interest-score">${sc}</span>
+        <span class="relevance-interest-name">${esc(name)}${statusNote}</span>
+      </div>`;
+    }).join('');
+    html += `<div class="relevance-interests"><div class="relevance-interests-title">Matched Interests</div>${rows}</div>`;
+
+    // Formula
+    const clamped = Math.max(1, Math.min(3, maxBase + residual));
+    const scoreList = scores.join(', ');
+    html += `<div class="relevance-formula">max(${scoreList}) + ${residual >= 0 ? residual : '(' + residual + ')'} = ${maxBase + residual}${(maxBase + residual) !== clamped ? ' \u2192 clamped to ' + clamped : ''}</div>`;
+  } else {
+    html += `<div class="relevance-interests"><div class="relevance-interests-title">Matched Interests</div><div style="font-size:13px;color:var(--text-muted);font-style:italic;">No matched interests \u2014 using static fallback (${esc(p.relevance_tier || 'mildly')})</div></div>`;
+  }
+
+  // Residual score
+  const resClass = residual === 0 ? 'zero' : '';
+  const resSign = residual > 0 ? '+' + residual : residual < 0 ? String(residual) : '0';
+  html += `<div class="relevance-residual ${resClass}"><strong>Residual: ${resSign}</strong> \u2014 ${residual > 0 ? 'Boosted: more relevant than interests alone suggest' : residual < 0 ? 'Reduced: less relevant than interests alone suggest' : 'No adjustment'}</div>`;
+
+  // Triage notes
+  const notes = (p.notes || '').trim();
+  if (notes) {
+    html += `<div class="relevance-notes">${esc(notes)}</div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
 /* Sort: relevance tier first, then published year descending (newest first) */
 function sortPapers(arr) {
   return arr.sort((a,b) => {
-    const r = (REL_ORDER[a.relevance_tier] ?? 9) - (REL_ORDER[b.relevance_tier] ?? 9);
+    const r = (REL_ORDER[dynamicRelevance(a)] ?? 9) - (REL_ORDER[dynamicRelevance(b)] ?? 9);
     if (r !== 0) return r;
     const ya = parseInt(a.publishing_date)||0, yb = parseInt(b.publishing_date)||0;
     if (ya !== yb) return yb - ya;
@@ -978,15 +1069,15 @@ function toggleHideRead() {
 function applyFilters() {
   let papers = allPapers;
   if (currentTab === 'email') papers = papers.filter(p => (p.source_mode||'').includes('email'));
-  if (currentRel !== 'all') papers = papers.filter(p => p.relevance_tier === currentRel);
+  if (currentRel !== 'all') papers = papers.filter(p => dynamicRelevance(p) === currentRel);
   if (hideRead) papers = papers.filter(p => !readSet.has(paperKey(p)));
   // Stats (from tab-filtered, before relevance filter)
   let base = allPapers;
   if (currentTab === 'email') base = base.filter(p => (p.source_mode||'').includes('email'));
   document.getElementById('stat-all').textContent = base.length;
-  document.getElementById('stat-def').textContent = base.filter(p=>p.relevance_tier==='definitely').length;
-  document.getElementById('stat-prob').textContent = base.filter(p=>p.relevance_tier==='probably').length;
-  document.getElementById('stat-mild').textContent = base.filter(p=>p.relevance_tier==='mildly').length;
+  document.getElementById('stat-def').textContent = base.filter(p=>dynamicRelevance(p)==='definitely').length;
+  document.getElementById('stat-prob').textContent = base.filter(p=>dynamicRelevance(p)==='probably').length;
+  document.getElementById('stat-mild').textContent = base.filter(p=>dynamicRelevance(p)==='mildly').length;
   document.getElementById('stat-read').textContent = base.filter(p=>readSet.has(paperKey(p))).length;
 
   const dates = allPapers.map(p=>p.date_found).filter(Boolean).sort();
@@ -1004,7 +1095,7 @@ function renderPapers(papers) {
     return;
   }
   sortPapers(papers);
-  const top = papers.filter(p=>p.relevance_tier==='definitely').slice(0,6);
+  const top = papers.filter(p=>dynamicRelevance(p)==='definitely').slice(0,6);
   renderTopPapers(top.length >= 2 ? top : papers.slice(0,6));
 
   const grouped = {};
@@ -1050,7 +1141,7 @@ function topCardHTML(p) {
       <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)} ${deleteBtn(p)}</span></div>
       <div class="p-detail-panel" data-summary="${hasSummary?escAttr(p.summary):''}" data-abstract="${hasAbstract?escAttr(p.abstract):''}"></div>
       <div class="p-meta-row">
-        <span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>
+        <span class="badge badge-${dynamicRelevance(p)}">${relLabel(dynamicRelevance(p))}</span>
         <span class="badge badge-venue" data-full="${escAttr(p.venue||'')}" onclick="event.stopPropagation();showVenueTooltip(this)">${esc(shortVenue(p.venue))}</span>
         ${paperDate(p)?`<span class="dot"></span><span>${paperDate(p)}</span>`:''}
       </div>
@@ -1071,7 +1162,7 @@ function topicItemHTML(p) {
       <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)} ${deleteBtn(p)}</span></div>
       <div class="p-detail-panel" data-summary="${hasSummary?escAttr(p.summary):''}" data-abstract="${hasAbstract?escAttr(p.abstract):''}"></div>
       <div class="p-meta-row">
-        <span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>
+        <span class="badge badge-${dynamicRelevance(p)}">${relLabel(dynamicRelevance(p))}</span>
         <span class="badge badge-venue" data-full="${escAttr(p.venue||'')}" onclick="event.stopPropagation();showVenueTooltip(this)">${esc(shortVenue(p.venue))}</span>
         ${paperDate(p)?`<span class="dot"></span><span>${paperDate(p)}</span>`:''}
       </div>
@@ -1323,7 +1414,7 @@ function openGroup(name, skipHash) {
   _overlayGroupName = name;
   let papers = allPapers.filter(p => (p.theme_groups||'').split('|').map(norm).includes(name));
   if (currentTab === 'email') papers = papers.filter(p => (p.source_mode||'').includes('email'));
-  if (currentRel !== 'all') papers = papers.filter(p => p.relevance_tier === currentRel);
+  if (currentRel !== 'all') papers = papers.filter(p => dynamicRelevance(p) === currentRel);
   if (hideRead) papers = papers.filter(p => !readSet.has(paperKey(p)));
   sortPapers(papers);
   document.getElementById('overlayTitle').textContent = name + ` (${papers.length})`;
@@ -1400,7 +1491,7 @@ function renderLibrary() {
     const allSorted = allPapers.slice().sort((a,b) => {
       const d = pubDateVal(b) - pubDateVal(a);
       if (d !== 0) return d;
-      const r = (REL_ORDER[a.relevance_tier]??9) - (REL_ORDER[b.relevance_tier]??9);
+      const r = (REL_ORDER[dynamicRelevance(a)]??9) - (REL_ORDER[dynamicRelevance(b)]??9);
       if (r !== 0) return r;
       return (a.title||'').localeCompare(b.title||'');
     });
@@ -1934,8 +2025,7 @@ function renderPaperDetail(p) {
   fixed += `<button class="btn-icon is-read-btn ${ir?'done':''}" onclick="toggleRead('${escAttr(k)}',this);renderPaperDetail(allPapers.find(pp=>paperKey(pp)==='${escAttr(k)}'))" title="${ir?'Mark unread':'Mark as read'}" style="font-size:16px">&#10003;</button>`;
   fixed += `<span class="save-anchor"><button class="btn-icon ${inAny?'done':''}" onclick="event.stopPropagation();openSaveDD(this,'${escAttr(k)}')" title="Add to list" style="${inAny?'color:var(--list)':''}font-size:16px">&#9776;</button></span>`;
   fixed += `<button class="btn-icon ${hasNotes?'has-notes':''}" onclick="toggleNotesModal('${escAttr(k)}')" title="Notes" style="font-size:16px">&#9998;</button>`;
-  const triageNote = p.notes && p.notes.trim();
-  if (triageNote) fixed += `<button class="btn-icon btn-triage-info" onclick="event.stopPropagation();toggleTriagePopup(this,'${escAttr(k)}')" title="Triage info" style="font-size:15px;">&#9432;</button>`;
+  fixed += `<span class="triage-anchor" onmouseenter="showRelevancePopup(this,'${escAttr(k)}')" onmouseleave="hideRelevancePopup(this)"><button class="btn-icon btn-triage-info" title="Relevance breakdown" style="font-size:15px;">&#9432;</button></span>`;
   fixed += `</div></div>`;
 
   fixed += `<div class="paper-detail-title">${esc(p.title)}</div>`;
@@ -1951,7 +2041,7 @@ function renderPaperDetail(p) {
   const groupAddBtn = `<span class="group-add-wrap"><button class="group-add-btn" onclick="event.stopPropagation();toggleGroupAddDD(this,'${escAttr(k)}')">+ Add</button><div class="group-add-dd"></div></span>`;
   fixed += `<div class="paper-detail-tags"><span class="paper-detail-tags-label">Topics</span>${groupBadges}${groupAddBtn}</div>`;
   fixed += `<div class="paper-detail-meta">`;
-  fixed += `<span class="badge badge-${p.relevance_tier||'mildly'}">${relLabel(p.relevance_tier)}</span>`;
+  fixed += `<span class="badge badge-${dynamicRelevance(p)}">${relLabel(dynamicRelevance(p))}</span>`;
   if (p.venue) fixed += `<span class="badge badge-venue" style="max-width:none">${esc(p.venue)}</span>`;
   if (p.source_mode) { const sm = p.source_mode.replace('web_survey','Web Survey').replace(/^email/,'Email').replace(/,Email/,', Email'); fixed += `<span class="badge badge-source">${esc(sm)}</span>`; }
   if (paperDate(p)) fixed += `<span class="dot"></span><span style="font-size:13px;color:var(--text-muted)">${paperDate(p)}</span>`;
@@ -2024,19 +2114,26 @@ function addGroupToPaper(key, groupName) {
   renderPaperDetail(p);
 }
 
-function toggleTriagePopup(btn, key) {
-  const existing = btn.querySelector('.triage-popup');
-  if (existing) { existing.remove(); return; }
-  document.querySelectorAll('.triage-popup').forEach(p => p.remove());
+let _relPopupTimer = null;
+function showRelevancePopup(anchor, key) {
+  clearTimeout(_relPopupTimer);
+  document.querySelectorAll('.relevance-popup').forEach(el => el.remove());
   const p = allPapers.find(pp => paperKey(pp) === key);
-  if (!p || !p.notes || !p.notes.trim()) return;
-  btn.style.position = 'relative';
+  if (!p) return;
+  const rect = anchor.getBoundingClientRect();
   const popup = document.createElement('div');
-  popup.className = 'triage-popup';
-  popup.innerHTML = `<div style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Triage Info</div><div>${esc(p.notes)}</div>`;
-  btn.appendChild(popup);
-  const close = (e) => { if (!btn.contains(e.target)) { popup.remove(); document.removeEventListener('click', close); } };
-  setTimeout(() => document.addEventListener('click', close), 0);
+  popup.className = 'relevance-popup';
+  popup.innerHTML = buildRelevanceBreakdown(p);
+  popup.style.top = (rect.bottom + 8) + 'px';
+  popup.style.right = (window.innerWidth - rect.right) + 'px';
+  popup.addEventListener('mouseenter', () => clearTimeout(_relPopupTimer));
+  popup.addEventListener('mouseleave', () => { _relPopupTimer = setTimeout(() => popup.remove(), 150); });
+  document.body.appendChild(popup);
+}
+function hideRelevancePopup(anchor) {
+  _relPopupTimer = setTimeout(() => {
+    document.querySelectorAll('.relevance-popup').forEach(el => el.remove());
+  }, 150);
 }
 
 function sanitizeNote(s) { return s.replace(/\|/g, '/').replace(/,/g, ';').replace(/\r\n|\r|\n/g, ' // ').replace(/"/g, "'"); }
