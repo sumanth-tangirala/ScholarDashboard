@@ -2317,7 +2317,8 @@ function applyHash() {
   if (hash.startsWith('search?q=')) {
     const q = decodeURIComponent(hash.slice(9));
     if (q) {
-      document.getElementById('searchInput').value = q;
+      const si = document.getElementById('searchInput');
+      if (document.activeElement !== si) si.value = q;
       showGlobalSearch(q, true);
       return;
     }
