@@ -864,7 +864,24 @@ function revealContent() {
 function norm(g) { return GROUP_NORMALIZE[g] || g || 'Other'; }
 function relLabel(t) { return t === 'definitely' ? 'Must Read' : t === 'probably' ? 'Interesting' : 'Tangential'; }
 function esc(s) { if (!s) return ''; const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
-function escAttr(s) { return (s||'').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function dataAttr(s) { return (s||'').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) {
+  // Safe for use inside inline onclick JS string literals that live inside
+  // HTML double-quoted attributes (e.g. onclick="fn('${escAttr(x)}')"). The
+  // HTML parser decodes entities BEFORE the JS parser sees the attribute, so
+  // apostrophes, backslashes, and newlines must be escaped at the JS layer.
+  return (s == null ? '' : String(s))
+    .replace(/\\/g, '\\\\')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
 const VENUE_ABBR = {
   'IEEE Robotics and Automation Letters': 'RA-L',
   'International Journal of Robotics Research': 'IJRR',
@@ -1139,10 +1156,10 @@ function topCardHTML(p) {
     ${p.authors&&p.authors!=='not specified'?`<div class="p-authors">${esc(p.authors)}</div>`:''}
     <div class="p-meta">
       <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)} ${deleteBtn(p)}</span></div>
-      <div class="p-detail-panel" data-summary="${hasSummary?escAttr(p.summary):''}" data-abstract="${hasAbstract?escAttr(p.abstract):''}"></div>
+      <div class="p-detail-panel" data-summary="${hasSummary?dataAttr(p.summary):''}" data-abstract="${hasAbstract?dataAttr(p.abstract):''}"></div>
       <div class="p-meta-row">
         <span class="badge badge-${dynamicRelevance(p)}">${relLabel(dynamicRelevance(p))}</span>
-        <span class="badge badge-venue" data-full="${escAttr(p.venue||'')}" onclick="event.stopPropagation();showVenueTooltip(this)">${esc(shortVenue(p.venue))}</span>
+        <span class="badge badge-venue" data-full="${dataAttr(p.venue||'')}" onclick="event.stopPropagation();showVenueTooltip(this)">${esc(shortVenue(p.venue))}</span>
         ${paperDate(p)?`<span class="dot"></span><span>${paperDate(p)}</span>`:''}
       </div>
     </div>
@@ -1160,10 +1177,10 @@ function topicItemHTML(p) {
     ${p.authors&&p.authors!=='not specified'?`<div class="p-authors">${esc(p.authors)}</div>`:''}
     <div class="t-sub">
       <div class="p-action-row">${summaryBtn(p)} ${absBtn(p)} ${linkBtn(p)} <span class="p-actions ${hasActive?'has-active':''}">${starBtn(p)} ${readBtn(p)} ${saveBtn(p)} ${deleteBtn(p)}</span></div>
-      <div class="p-detail-panel" data-summary="${hasSummary?escAttr(p.summary):''}" data-abstract="${hasAbstract?escAttr(p.abstract):''}"></div>
+      <div class="p-detail-panel" data-summary="${hasSummary?dataAttr(p.summary):''}" data-abstract="${hasAbstract?dataAttr(p.abstract):''}"></div>
       <div class="p-meta-row">
         <span class="badge badge-${dynamicRelevance(p)}">${relLabel(dynamicRelevance(p))}</span>
-        <span class="badge badge-venue" data-full="${escAttr(p.venue||'')}" onclick="event.stopPropagation();showVenueTooltip(this)">${esc(shortVenue(p.venue))}</span>
+        <span class="badge badge-venue" data-full="${dataAttr(p.venue||'')}" onclick="event.stopPropagation();showVenueTooltip(this)">${esc(shortVenue(p.venue))}</span>
         ${paperDate(p)?`<span class="dot"></span><span>${paperDate(p)}</span>`:''}
       </div>
     </div>
@@ -1296,7 +1313,7 @@ function openSaveDD(btn, key) {
   const dd = document.createElement('div');
   dd.className = 'save-dd';
   dd.onclick = e => e.stopPropagation();
-  dd.innerHTML = `<input class="save-dd-input" type="text" placeholder="Create list" data-key="${escAttr(key)}" onclick="event.stopPropagation()">
+  dd.innerHTML = `<input class="save-dd-input" type="text" placeholder="Create list" data-key="${dataAttr(key)}" onclick="event.stopPropagation()">
     <div class="save-dd-list">${buildDDItems(key)}</div>`;
   dd.style.top = (rect.bottom + 4) + 'px';
   dd.style.left = (rect.right - 210) + 'px';
@@ -1649,7 +1666,7 @@ function groupCardHTML(g) {
   else if (g.status === 'confirmed') actions = `<div class="interest-actions"><button class="btn-reject" onclick="event.stopPropagation();updateG('${escAttr(g.group_name)}','rejected')">Remove</button></div>`;
   else if (g.status === 'rejected') actions = `<div class="interest-actions"><button class="btn-approve" onclick="event.stopPropagation();updateG('${escAttr(g.group_name)}','confirmed')">Restore</button></div>`;
   const handle = `<div class="group-drag-handle" title="Drag to reorder"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></div>`;
-  return `<div class="interest-card" draggable="true" data-group="${escAttr(g.group_name)}" ondragstart="gDragStart(event)" ondragover="gDragOver(event)" ondragenter="gDragEnter(event)" ondragleave="gDragLeave(event)" ondrop="gDrop(event)" ondragend="gDragEnd(event)">${handle}<div class="interest-info"><div class="interest-name">${esc(g.group_name)}</div><div class="interest-detail">${esc(g.description||'')}</div>${notes}<div class="interest-meta">${statusBadge}<span class="badge badge-venue">${paperCount} paper${paperCount!==1?'s':''}</span></div></div>${actions}</div>`;
+  return `<div class="interest-card" draggable="true" data-group="${dataAttr(g.group_name)}" ondragstart="gDragStart(event)" ondragover="gDragOver(event)" ondragenter="gDragEnter(event)" ondragleave="gDragLeave(event)" ondrop="gDrop(event)" ondragend="gDragEnd(event)">${handle}<div class="interest-info"><div class="interest-name">${esc(g.group_name)}</div><div class="interest-detail">${esc(g.description||'')}</div>${notes}<div class="interest-meta">${statusBadge}<span class="badge badge-venue">${paperCount} paper${paperCount!==1?'s':''}</span></div></div>${actions}</div>`;
 }
 /* ===== GROUP DRAG & DROP ===== */
 let _draggedGroup = null;
