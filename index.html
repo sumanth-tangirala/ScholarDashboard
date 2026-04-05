@@ -296,6 +296,7 @@ a { color: inherit; text-decoration: none; }
 .library-section-header { font-size: 16px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .library-section-header .star-icon { color: var(--star); }
 .library-actions { margin-left: auto; display: flex; gap: 4px; }
+.interest-group-header .library-actions ~ .chevron { margin-left: 8px; }
 .library-actions button { background: none; border: 1px solid var(--border); color: var(--text-muted); font-size: 11px; padding: 3px 10px; border-radius: 14px; cursor: pointer; transition: all 0.15s; }
 .library-actions button:hover { background: var(--bg-hover); color: var(--text); }
 .library-actions button.danger:hover { border-color: #f28b82; color: #f28b82; }
@@ -303,6 +304,8 @@ a { color: inherit; text-decoration: none; }
 .library-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; }
 .btn-interests { font-size: 15px; padding: 10px 22px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; position: absolute; right: 24px; top: 45px; transform: translateY(-50%); }
 .btn-interests:hover { border-color: var(--accent); color: var(--accent); }
+.btn-new-list { font-size: 15px; padding: 10px 22px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; position: absolute; left: 24px; top: 45px; transform: translateY(-50%); }
+.btn-new-list:hover { border-color: var(--accent); color: var(--accent); }
 .library-list-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; font-style: italic; }
 
 /* [12] COPY-TO DROPDOWN (library) — animated entrance */
@@ -533,6 +536,7 @@ a { color: inherit; text-decoration: none; }
     <div class="briefing" style="padding:0;">
       <h2>Library</h2>
     </div>
+    <button class="btn-new-list" onclick="createNewList()">+ New List</button>
     <button class="btn-interests" onclick="switchTab('interests')">Topics &amp; Interests <span class="tab-badge" id="interestsBadge" style="display:none">0</span></button>
   </div>
   <div class="library-wrap" id="libraryContent"></div>
@@ -592,7 +596,7 @@ a { color: inherit; text-decoration: none; }
     <div class="auth-modal-title" id="genericTitle"></div>
     <div class="auth-modal-sub" id="genericSub"></div>
     <div class="auth-input-wrap" id="genericInputWrap">
-      <input class="auth-input" id="genericInput" type="password" autocomplete="off">
+      <input class="auth-input" id="genericInput" type="text" autocomplete="off">
       <button class="auth-toggle-vis" id="genericVisBtn" onclick="toggleGenericVis()" title="Show / hide">
         <svg id="genericVisIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
@@ -1474,7 +1478,7 @@ function closeOverlay(skipHistory) {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeOverlay(); closeAbsPopup(); closeSaveDD(); closeLoginModal(); _resolveGeneric(null); } });
 
 /* ===== LIBRARY ===== */
-let _collapsedLibGroups = new Set(['all']);
+let _collapsedLibGroups = new Set(['all', 'read']);
 function toggleLibGroup(headerEl, key) {
   const group = headerEl.closest('.interest-group');
   group.classList.toggle('collapsed');
@@ -1499,13 +1503,13 @@ function renderLibrary() {
     html = '<div class="library-empty">No papers in the database yet.</div>';
   } else {
     if (starred.length) html += libGroupHTML('starred', '&#9733;', 'Starred', starred);
-    if (read.length) html += libGroupHTML('read', '&#10003;', 'Read', read);
     if (noted.length) html += libGroupHTML('noted', '&#128221;', 'Notes', noted);
     listNames.forEach(name => {
       const papers = allPapers.filter(p => libraryLists[name].includes(paperKey(p)));
       const actions = `<span class="library-actions" onclick="event.stopPropagation()"><button onclick="renameList('${escAttr(name)}')">Rename</button><button onclick="showCopyDD(this,'${escAttr(name)}')">Copy to...</button><button class="danger" onclick="deleteList('${escAttr(name)}')">Delete</button></span>`;
       html += libGroupHTML('list-'+name, '&#9776;', name, papers, actions);
     });
+    if (read.length) html += libGroupHTML('read', '&#10003;', 'Read', read);
     const MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
     function pubDateVal(p) {
       const s = (p.publishing_date||'').trim().toLowerCase();
@@ -1526,6 +1530,19 @@ function renderLibrary() {
 }
 
 /* Library list management */
+async function createNewList() {
+  if (!isAuthed()) { requireAuth(() => createNewList()); return; }
+  const name = await showPrompt('New list', null, 'List name');
+  if (!name) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  if (trimmed.includes('|')) { toast('List name cannot contain "|"'); return; }
+  if (libraryLists[trimmed]) { toast('A list with that name already exists'); return; }
+  libraryLists[trimmed] = [];
+  persistLists(); updateLibraryBadge();
+  toast(`Created "${trimmed}"`);
+  renderLibrary();
+}
 async function renameList(oldName) {
   const newName = await showPrompt('Rename list', null, 'List name', oldName);
   if (!newName || newName === oldName) return;
@@ -1822,7 +1839,7 @@ function updateInterestField(name, field, value) {
 /* ===== GENERIC MODAL (prompt / confirm) ===== */
 let _genericResolve = null;
 
-function _openGeneric({ title, sub, inputPlaceholder, defaultValue, showInput, submitLabel, cancelLabel, danger }) {
+function _openGeneric({ title, sub, inputPlaceholder, defaultValue, showInput, submitLabel, cancelLabel, danger, isPassword }) {
   return new Promise(resolve => {
     _genericResolve = resolve;
     document.getElementById('genericTitle').textContent = title;
@@ -1835,8 +1852,11 @@ function _openGeneric({ title, sub, inputPlaceholder, defaultValue, showInput, s
     if (showInput) {
       input.value = defaultValue || '';
       input.placeholder = inputPlaceholder || '';
-      input.type = 'password';
+      input.type = isPassword ? 'password' : 'text';
       document.getElementById('genericVisIcon').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      // Only show the visibility toggle for password inputs
+      const visBtn = document.getElementById('genericVisIcon').closest('button, .vis-toggle, [onclick]') || document.getElementById('genericVisIcon').parentElement;
+      if (visBtn) visBtn.style.display = isPassword ? '' : 'none';
       input.classList.remove('error');
     }
     document.getElementById('genericError').textContent = '';
