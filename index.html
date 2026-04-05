@@ -330,6 +330,7 @@ a { color: inherit; text-decoration: none; }
 /* [7] TOAST — frosted glass + accent border */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(0,0,0,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: var(--text); padding: 10px 20px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2); border-left: 3px solid var(--accent); box-shadow: 0 8px 32px rgba(0,0,0,0.55); transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); z-index: 300; pointer-events: none; display: flex; align-items: center; gap: 12px; }
 .toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast.error { border-left-color: #e57373; }
 .toast-msg { flex: 1; }
 .toast-undo { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
 .toast-undo:hover { text-decoration: underline; }
@@ -644,6 +645,17 @@ a { color: inherit; text-decoration: none; }
 
 <script>
 /* ===== CONFIG ===== */
+// Fetch CSVs directly from the GitHub raw endpoint so the site always shows
+// the latest DB without needing a build/deploy step. Set to '' (empty string)
+// to fall back to local relative paths (e.g. for offline/dev use).
+const CSV_BASE_URL = 'https://raw.githubusercontent.com/sumanth-tangirala/ScholarDashboard/main/';
+function csvUrl(name) {
+  const base = CSV_BASE_URL || '';
+  // Cache-buster: raw.githubusercontent.com caches aggressively (~5 min CDN TTL).
+  const bust = base ? ('?t=' + Date.now()) : '';
+  return base + name + bust;
+}
+
 const GROUP_NORMALIZE = {
   'Safety & Verification': 'Verification & Safety',
   'Conformal Prediction / Verification': 'Conformal Prediction',
@@ -820,39 +832,73 @@ function listCount() { return Object.values(libraryLists).reduce((n, arr) => n +
 // endings, absorbing rows into adjacent field values.
 function normalizeNewlines(text) { return (text || '').replace(/\r\n?/g, '\n'); }
 async function fetchNormalized(url) {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error('fetch failed: ' + res.status);
-  return normalizeNewlines(await res.text());
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('fetch failed: ' + res.status);
+    return normalizeNewlines(await res.text());
+  } catch (err) {
+    // Fallback: if we tried to fetch from the GitHub raw CDN and it failed
+    // (network down, offline, CDN hiccup), retry from the local relative path.
+    if (CSV_BASE_URL && typeof url === 'string' && url.startsWith(CSV_BASE_URL)) {
+      // Strip base + cache-buster querystring to recover the bare filename.
+      const rel = url.slice(CSV_BASE_URL.length).split('?')[0];
+      const res = await fetch(rel, { cache: 'no-store' });
+      if (!res.ok) throw new Error('fetch failed: ' + res.status);
+      return normalizeNewlines(await res.text());
+    }
+    throw err;
+  }
 }
 function loadPapers() {
-  fetchNormalized('papers_database.csv').then(text => {
+  fetchNormalized(csvUrl('papers_database.csv')).then(text => {
     const r = Papa.parse(text, { header: true, skipEmptyLines: true, newline: '\n' });
     allPapers = r.data.filter(p => p.title && p.title.trim());
     bootstrapStateFromCSV();
     updateLibraryBadge();
     applyHash();
     revealContent();
-  }).catch(() => {
+  }).catch(err => {
     document.getElementById('topStories').innerHTML = '<div class="empty-state">Could not load papers_database.csv</div>';
+    toastError('Could not load papers — ' + (err && err.message ? err.message : 'network error'));
     revealContent();
   });
 }
 function loadInterests() {
-  fetchNormalized('interests_database.csv').then(text => {
+  fetchNormalized(csvUrl('interests_database.csv')).then(text => {
     const r = Papa.parse(text, { header: true, skipEmptyLines: true, newline: '\n' });
     allInterests = r.data.filter(i => i.interest_name && i.interest_name.trim());
     updateInterestsBadge();
     renderInterests();
-  }).catch(() => {});
+  }).catch(err => {
+    toastError('Could not load interests — ' + (err && err.message ? err.message : 'network error'));
+  });
 }
 function loadGroups() {
-  Papa.parse('groups_database.csv', {
+  const groupsUrl = csvUrl('groups_database.csv');
+  const onComplete = r => {
+    allGroups = r.data.filter(g => g.group_name && g.group_name.trim());
+    buildGroupOrder();
+    updateInterestsBadge();
+    renderInterests();
+  };
+  const reportFail = err => {
+    const detail = err && err.message ? err.message : 'network error';
+    toastError('Could not load groups — ' + detail);
+  };
+  Papa.parse(groupsUrl, {
     download: true, header: true, skipEmptyLines: true, delimiter: '|',
-    complete: r => {
-      allGroups = r.data.filter(g => g.group_name && g.group_name.trim());
-      buildGroupOrder();
-      updateInterestsBadge();
-      renderInterests();
+    complete: onComplete,
+    error: err => {
+      // Fallback to local relative path if the GitHub raw fetch failed.
+      if (CSV_BASE_URL && groupsUrl.startsWith(CSV_BASE_URL)) {
+        Papa.parse('groups_database.csv', {
+          download: true, header: true, skipEmptyLines: true, delimiter: '|',
+          complete: onComplete,
+          error: reportFail
+        });
+      } else {
+        reportFail(err);
+      }
     }
   });
 }
@@ -1914,18 +1960,21 @@ function showConfirm(title, sub, confirmLabel = 'Confirm', danger = false) {
 
 let _toastTimer = null;
 let _toastUndo = null;
-function toast(msg, undoFn) {
+function toast(msg, undoFn, opts) {
   const t = document.getElementById('toast');
   if (_toastTimer) clearTimeout(_toastTimer);
   _toastUndo = undoFn || null;
+  t.classList.toggle('error', !!(opts && opts.error));
+  const duration = (opts && opts.duration) || (opts && opts.error ? 6000 : 4000);
   if (undoFn) {
     t.innerHTML = `<span class="toast-msg">${msg}</span><button class="toast-undo" onclick="_doToastUndo()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Undo</button>`;
   } else {
     t.innerHTML = `<span class="toast-msg">${msg}</span>`;
   }
   t.classList.add('show');
-  _toastTimer = setTimeout(() => { t.classList.remove('show'); _toastUndo = null; }, 4000);
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); _toastUndo = null; }, duration);
 }
+function toastError(msg) { toast(msg, null, { error: true }); }
 function _doToastUndo() {
   if (_toastUndo) { _toastUndo(); _toastUndo = null; }
   const t = document.getElementById('toast');
