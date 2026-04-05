@@ -1,7 +1,7 @@
 interest_name,category,priority_level,relevance_mapping,status,related_to,discovered_from,date_added,date_updated,notes
 Data-driven verification,application,core,definitely,confirmed,"Black-box robotic systems, black-box controllers",manual,2026-03-30,,Central thread of current research
 Verification of visuomotor policies,application,high,definitely,confirmed,"Conformal prediction, diffusion/flow-matching, active learning",manual,2026-03-30,,Next research direction — extending verification to vision-based policies
-Safe & robust robot control,application,high,definitely,confirmed,Verification work extension,manual,2026-03-30,,Ensuring controllers behave safely under uncertainty
+Safe & robust robot control,application,key,probably,confirmed,Verification work extension,manual,2026-03-30,2026-04-05,Ensuring controllers behave safely under uncertainty
 Controller composition,application,high,probably,confirmed,Verification work extension,manual,2026-03-30,,Composing and verifying composed systems
 Generalist policies,application,medium,probably,confirmed,Diffusion/flow-matching methods,manual,2026-03-30,2026-04-01,Broad multi-task robot policies
 Imitation learning,application,high,probably,confirmed,"Generative methods (diffusion, flow matching)",manual,2026-03-30,,Learning from demonstrations
